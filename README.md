@@ -24,7 +24,7 @@ on other platforms previously).
 
 See the screenshot of what it should look like while running:
 
-(Screenshot)[docs/screenshot.png]
+![Screenshot](docs/screenshot.png)
 
 The main task in porting this to other platforms is providing the
 code for receiving timer events, such as installing an interrupt
