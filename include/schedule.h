@@ -76,7 +76,7 @@ void restore_schedule_list_state();
 // tries to work out if there is a viable schedule
 acceptance_codes off_line_scheduler(task_t *task);
 
-// returns true if it aded task else it returns an error code
+// returns true if it added task else it returns an error code
 acceptance_codes request_to_add_task(void (*func_ptr)(), id_t task_name,
                                      id_t wait_for, tick_t start_not_before, ticks_t exec_bound,
                                      tick_t complete_not_after, ticks_t period,
