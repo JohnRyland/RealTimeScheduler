@@ -60,12 +60,12 @@ might be able to be changed to make it a callback or policy setting.
 The kind of use cases that a real-time task might be used for are things that
 are time critical, such as re-filling a buffer which the hardware is continuously
 draining, such as an audio device where the audio buffer needs constant refilling
-otherwise audible clicks and noises are heard when it isn't refilled in time.
-With a fixed sized buffer and the hardware draining it at a constant rate, the
-task needed to keep filling it is going to be a periodic task with a period
-at least as often as how long it takes for the buffer to be drained. The task has
-a simple well defined scope of fetching data and putting it in the buffer.
-This should be fairly deterministic in how long it will take, and the
+otherwise audible clicks, gaps/stutters and undesired noises are heard when it
+isn't refilled in time. With a fixed sized buffer and the hardware draining it at
+a constant rate, the task needed to keep filling it is going to be a periodic task
+with a period at least as often as how long it takes for the buffer to be drained.
+The task has a simple well defined scope of fetching data and putting it in the
+buffer. This should be fairly deterministic in how long it will take, and the
 execution bounds can be calculated based on the worst case for how
 long this takes.
 
@@ -80,7 +80,7 @@ and DOS ports will be updated, and the plan is to support the Pi Pico.
 
 Goal is to have this work on the Pi Pico. On the Pi Pico it will be then
 the basis for a small RTOS that will be able to help in the refresh of a
-LCD panel connects via SPI.
+LCD panel connected via SPI.
 
 Another goal is to add non-real-time tasks which are able to be run in
 the free time of the CPU and can be preempted (interrupted) to then
@@ -93,11 +93,10 @@ allow for better memory and system protection. Currently everything is
 running with the same permissions and protection level. It is essentially
 calling a function to execute a task. The alternative will be port/device
 specific, so this will need to be abstracted to allow replacing the
-implmentation details of this feature.
+implmentation details of this feature. Some devices might not have such
+a concept, so this might not be possible everywhere.
 
 Other goals are implementing more general purpose drviers and exposing
 APIs to these in the tasks to make this more like an actual OS and not
 just a scheduler.
-
-
 
