@@ -112,15 +112,16 @@ TAGS         = $(TEMP_DIR)/tags
 ##  Build rules
 
 all: $(PROJECT_FILE) $(TAGS) $(TARGET_BIN) $(ADDITIONAL_DEPS)
-	@echo ---- Finding TODOs -------------------------
+	@echo ---- Finding TODOs --------------------------------------------------------------------------------
 	@$(call GREP,"TODO" $(SOURCES) $(wildcard *.h))
+	@echo ---- Done -----------------------------------------------------------------------------------------
 
 purge:
-	@echo ---- Purging -------------------------------
+	@echo ---- Purging --------------------------------------------------------------------------------------
 	$(RMDIR) $(TEMP_DIR) $(TARGET_DIR)
 
 debug: $(TAGS) $(TARGET_D_BIN)
-	@echo ---- Running $(TARGET_D_BIN) --------------
+	@echo ---- Running $(TARGET_D_BIN) ----------------------------------------------------------------------
 	@$(TARGET_D_BIN) --debug && echo PASSED
 
 $(PROJECT_FILE):
@@ -136,7 +137,7 @@ $(PROJECT_FILE):
 	@echo LFLAGS       = >> $@
 
 $(TAGS): $(patsubst %, ./%, $(SOURCES) $(wildcard *.h))
-	@echo ---- Updating tags ------------------------
+	@echo ---- Updating tags --------------------------------------------------------------------------------
 	@$(CTAGS) --tag-relative=yes --c++-kinds=+pl --fields=+iaS --extra=+q --language-force=C++ -f $@ $^ 2> $(NULL)
 
 
@@ -182,23 +183,23 @@ $(TEMP_DIR)/debug/objs/%.c.o: %.c $(TEMP_DIR)/debug/deps/%.c.d
 ##  Compile target
 
 compiling_release:
-	@echo ---- Compiling release build --------------
+	@echo ---- Compiling release build ----------------------------------------------------------------------
 
 $(TARGET_BIN): compiling_release $(OBJECTS) $(DEPENDS)
 	@$(call MKDIR,$(dir $@))
-	@echo ---- Linking ------------------------------
+	@echo ---- Linking --------------------------------------------------------------------------------------
 	$(LINKER) $(LINK_FLAGS) $(OBJECTS) -o $@
 	$(STRIP) -S $@
-	@echo ---- Finished compiling release build -----
+	@echo ---- Finished compiling release build -------------------------------------------------------------
 
 compiling_debug:
-	@echo ---- Compiling debug build ----------------
+	@echo ---- Compiling debug build ------------------------------------------------------------------------
 
 $(TARGET_D_BIN): compiling_debug $(OBJECTS_D) $(DEPENDS_D)
 	@$(call MKDIR,$(dir $@))
-	@echo ---- Linking ------------------------------
+	@echo ---- Linking --------------------------------------------------------------------------------------
 	$(LINKER) $(LINK_FLAGS) $(OBJECTS_D) -o $@
-	@echo ---- Finished compiling debug build -------
+	@echo ---- Finished compiling debug build ---------------------------------------------------------------
 
 -include $(DEPENDS)
 -include $(DEPENDS_D)
