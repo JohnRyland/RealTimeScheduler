@@ -24,10 +24,17 @@ endif
 # Pick driver for host
 ifeq ($(UNAME),Darwin)
  DRIVER = macos
+ C_OPTS = -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-poison-system-directories
+ L_OPTS =
 else ifeq ($(UNAME),Windows)
  DRIVER = windows
+ C_OPTS =
+ L_OPTS =
 else ifeq ($(UNAME),Linux)
  DRIVER = linux
+ C_OPTS = -Wall -Wextra
+ L_OPTS = -lrt
+ # everything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-poison-system-directories
 else
  DRIVER = dos
 endif
@@ -40,14 +47,14 @@ OBJECTS := $(patsubst %.cpp,${BUILD_DIR}/%.o,$(SOURCES))
 all: ${BUILD_DIR} ${TARGET}
 
 ${TARGET}: ${OBJECTS}
-	g++ -g $^ -o $@
+	g++ -g $^ -o $@ ${L_OPTS}
 
 ${BUILD_DIR}:
 	@mkdir -p $@
 
 ${BUILD_DIR}/%.o: %.cpp ${HEADERS}
 	@mkdir -p $(dir $@)
-	g++ -g -c $< -o $@ -I./src -I./include -I./include/driver --std=c++11 -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-poison-system-directories
+	g++ -g -c $< -o $@ -I./src -I./include -I./include/driver --std=c++11 ${C_OPTS}
 
 debug: ${TARGET}
 	./${TARGET}
