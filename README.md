@@ -19,8 +19,8 @@ The schedule is executed using a regular timer which updates a tick
 and determines the next task to run.
 
 There is some visualization of the schedule as it runs and this is
-currently just working on macOS (although it has been made to work
-on other platforms previously).
+currently just working on macOS and linux (although it has been made
+to work on other platforms previously).
 
 See the screenshot of what it should look like while running:
 
