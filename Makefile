@@ -112,13 +112,15 @@ TAGS         = $(TEMP_DIR)/tags
 ##  Build rules
 
 all: $(PROJECT_FILE) $(TAGS) $(TARGET_BIN) $(ADDITIONAL_DEPS)
+	@echo ---- Finding TODOs -------------------------
 	@$(call GREP,"TODO" $(SOURCES) $(wildcard *.h))
 
 purge:
+	@echo ---- Purging -------------------------------
 	$(RMDIR) $(TEMP_DIR) $(TARGET_DIR)
 
 debug: $(TAGS) $(TARGET_D_BIN)
-	@echo Running $(TARGET_D_BIN) ...
+	@echo ---- Running $(TARGET_D_BIN) --------------
 	@$(TARGET_D_BIN) --debug && echo PASSED
 
 $(PROJECT_FILE):
@@ -134,7 +136,7 @@ $(PROJECT_FILE):
 	@echo LFLAGS       = >> $@
 
 $(TAGS): $(patsubst %, ./%, $(SOURCES) $(wildcard *.h))
-	@echo Updating tags
+	@echo ---- Updating tags ------------------------
 	@$(CTAGS) --tag-relative=yes --c++-kinds=+pl --fields=+iaS --extra=+q --language-force=C++ -f $@ $^ 2> $(NULL)
 
 
@@ -179,14 +181,24 @@ $(TEMP_DIR)/debug/objs/%.c.o: %.c $(TEMP_DIR)/debug/deps/%.c.d
 ######################################################################
 ##  Compile target
 
-$(TARGET_BIN): $(OBJECTS) $(DEPENDS)
+compiling_release:
+	@echo ---- Compiling release build --------------
+
+$(TARGET_BIN): compiling_release $(OBJECTS) $(DEPENDS)
 	@$(call MKDIR,$(dir $@))
+	@echo ---- Linking ------------------------------
 	$(LINKER) $(LINK_FLAGS) $(OBJECTS) -o $@
 	$(STRIP) -S $@
+	@echo ---- Finished compiling release build -----
 
-$(TARGET_D_BIN): $(OBJECTS_D) $(DEPENDS_D)
+compiling_debug:
+	@echo ---- Compiling debug build ----------------
+
+$(TARGET_D_BIN): compiling_debug $(OBJECTS_D) $(DEPENDS_D)
 	@$(call MKDIR,$(dir $@))
+	@echo ---- Linking ------------------------------
 	$(LINKER) $(LINK_FLAGS) $(OBJECTS_D) -o $@
+	@echo ---- Finished compiling debug build -------
 
 -include $(DEPENDS)
 -include $(DEPENDS_D)
@@ -237,7 +249,7 @@ lldb-nvim.json: $(PROJECT_FILE)
 ######################################################################
 ##  Target management
 
-FAKE_TARGETS = debug release profile clean purge verify help all info project paths system_paths dependancies null
+FAKE_TARGETS = debug release profile clean purge verify help all info project paths system_paths dependancies null compiling_debug compiling_release
 MAKE_TARGETS = $(MAKE) -rpn null | sed -n -e '/^$$/ { n ; /^[^ .\#][^ ]*:/ { s/:.*$$// ; p ; } ; }' | grep -v "build/"
 REAL_TARGETS = $(MAKE_TARGETS) | sort | uniq | grep -E -v $(shell echo $(FAKE_TARGETS) | sed 's/ /\\|/g')
 

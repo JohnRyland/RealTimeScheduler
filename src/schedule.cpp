@@ -184,13 +184,10 @@ void purge_completed_scheduled_items()
   if (items_in_scheduled_item_list >= MAX_SCHEDULED_ITEMS / 2)
   {
     /*
-    int i = 1; // TODO: Fixme, why do we need to always skip over the 1st item? I don't think it is the currently executing online_scheduler task
-    for (i = 1; i < items_in_scheduled_item_list; ++i)
+    // Validate the list
+    for (i = 0; i < item_upto; ++i)
     {
-      if (scheduled_item_list[i].done == false)
-      {
-        break;
-      }
+      assert(scheduled_item_list[i].done == true);
     }
     */
     unsigned i = item_upto;
@@ -226,7 +223,7 @@ void online_scheduler()
     {
       if (!convert_periodic_tasks_to_scheduled_items_upto_event_horizon(&task_list[i]))
       {
-        // TODO: need to handle this
+        // TODO: add error handling here
       }
     }
   }
