@@ -1,8 +1,7 @@
-# Output directory
-build
-
-# Built executable
-real-time_scheduler
+# Generated files
+bin
+.build
+.modules
 
 # Prerequisites
 *.d
