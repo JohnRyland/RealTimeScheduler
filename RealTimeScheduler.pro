@@ -1,20 +1,21 @@
-PROJECT = RealTimeScheduler
-TARGET = RealTimeScheduler
+PROJECT  = RealTimeScheduler
+TARGET   = RealTimeScheduler
 
 # Pick driver for host
 ifeq ($(UNAME),Darwin)
- DRIVER = macos
+ DRIVER  = macos
 else ifeq ($(UNAME),Windows)
- DRIVER = windows
+ DRIVER  = windows
 else ifeq ($(UNAME),Linux)
- DRIVER = linux
+ DRIVER  = linux
  LIBRARIES = rt
 else
- DRIVER = dos
+ DRIVER  = dos
 endif
 
-SOURCES = $(wildcard src/*.cpp src/drivers/${DRIVER}/*.cpp)
-DOCS = $(wildcard *.md *.txt docs/*)
+SOURCES  = $(wildcard src/*.cpp src/drivers/${DRIVER}/*.cpp)
+DOCS     = $(wildcard *.md *.txt docs/*)
 INCLUDES = include include/driver
-CFLAGS = -Wall -Wextra -Werror
+CFLAGS   = -Wall -Wextra -Werror
 CXXFLAGS = -std=c++11
+MODULES  = https://github.com/JohnRyland/TestFramework.git
