@@ -4,6 +4,12 @@
 bin
 docs
 
+# Asm
+*.S
+
+# tmp
+.tmp
+
 # Prerequisites
 *.d
 
