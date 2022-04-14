@@ -2,7 +2,6 @@
 .build
 .modules
 bin
-docs
 
 # Asm
 *.S
