@@ -9,6 +9,7 @@ All rights reserved.
 ## Status
 
 [![Build Status](https://github.com/JohnRyland/RealTimeScheduler/workflows/build/badge.svg)](https://github.com/JohnRyland/RealTimeScheduler/actions?workflow=build)
+[![Build Status](https://github.com/JohnRyland/RealTimeScheduler/workflows/build/badge.svg)](https://github.com/JohnRyland/RealTimeScheduler/actions?workflow=build)
 
 
 ## Introduction
