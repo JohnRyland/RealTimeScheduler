@@ -6,6 +6,11 @@ Copyright (c) 2022, John Ryland
 All rights reserved.
 
 
+## Status
+
+[![Build Status](https://github.com/JohnRyland/RealTimeScheduler/workflows/build/badge.svg)](https://github.com/JohnRyland/RealTimeScheduler/actions?workflow=build)
+
+
 ## Introduction
 
 This is a very light and simple implementation of creating a schedule
