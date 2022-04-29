@@ -13,14 +13,14 @@ All rights reserved.
 
 ## Introduction
 
-This is a very light and simple implementation of creating a schedule
+This is a very light and simple implementation of a scheduler
 using the earliest deadline algorithm.
 
 The schedule is created up to some near event horizon until the
 scheduler is able to schedule itself to run again to fill out the
 schedule again.
 
-The schedule is executed using a regular timer which updates a tick
+The schedule is executed using a regular hardware timer which updates a tick
 and determines the next task to run.
 
 There is some visualization of the schedule as it runs and this is
