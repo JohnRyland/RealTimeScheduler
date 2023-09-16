@@ -1,3 +1,9 @@
+#
+# x86 OS Bootloader
+# Copyright (C) 2023, John Ryland
+# All rights reserved.
+#
+
 # CPU starts up in 16-bit mode
 .code16
 
@@ -5,16 +11,108 @@
 .org 0x7C00
 
 # Setup the registers and then jump to main
-_start:
+_start16:
   push   %cs
   pop    %ds
   movw   $0x3,%ax
   int    $0x10     # reset the screen mode
-  jmp    main
+  jmp    main16
+
+# Text attribute values
+.equ BOLD,   0x0F
+.equ NORMAL, 0x08
+.equ RED,    0x0C
+.equ GREEN,  0x0A
+
+.org 0x7C0A
+.equ crlf,0x7C0A
+  .byte  NORMAL
+  .asciz ""
+
+.org 0x7C0D
+.equ welcome_msg1,0x7C0D
+  .byte  BOLD
+  .asciz "MagicCore RTOS v1.0"
+
+.org 0x7C25
+.equ welcome_msg2,0x7C25
+  .byte  NORMAL
+  .asciz "Copyright (C) 2023, John Ryland"
+
+.org 0x7C47
+.equ read_error,0x7C47
+  .byte  RED
+  .asciz "ReadErr"
+
+.org 0x7C51
+.equ read_okay,0x7C51
+  .byte  GREEN
+  .asciz "[X] Read"
+
+.org 0x7C5A+2
+.equ halt_msg,0x7C5A+2
+  .byte  RED
+  .asciz "Panic!"
+
+.org 0x7C65+2
+.equ line_no,0x7C65+2
+  .long 160    # Text position
+
+# This is the logical-block-address descriptor to load 2nd stage
+.org 0x7C69+2
+.equ lba_data,0x7C69+2
+  .byte 0x10, 0x00  # packet size
+  .byte 0x40, 0x00  # sectors to read
+  .long 0x00007C00  # load address / destination
+  .long 0x00000000  # start sector
+
+.org 0x7C75+2
+.equ gdt,0x7C75+2
+  # Null Descriptor
+  .word 0x0000, 0x0000
+  .word 0x0000, 0x0000
+  # Code Descriptor
+  .word 0xffff, 0x0000
+  .byte 0x00, 0b10011010, 0b11001111, 0x00
+  # .byte 0x00, 0x9A, 0xCF, 0x00
+  # Data Descriptor
+  .word 0xffff, 0x0000
+  .byte 0x00, 0b10010010, 0b11001111, 0x00
+  # .byte 0x00, 0x92, 0xCF, 0x00
+
+.org 0x7C75+30
+.equ gdt32ptr,0x7C75+30
+  .word 23
+  .long gdt
+
+.org 0x7C99
+.equ a20_okay_msg,0x7C99
+  .byte GREEN
+  .asciz "[X] A20"
+
+.org 0x7C99+10
+.equ gdt_okay_msg,0x7C99+10
+  .byte GREEN
+  .asciz "[X] GDT"
+
+.org 0x7C99+20
+.equ pm_okay_msg, 0x7C99+20
+  .byte GREEN
+  .asciz "[X] 32bit"
+
+.org 0x7CB9
+.equ pagemap_okay_msg, 0x7CB9
+  .byte GREEN
+  .asciz "[X] PageMap"
+
+.org 0x7CB9+14
+.equ cr3_okay_msg, 0x7CB9+14
+  .byte GREEN
+  .asciz "[X] CR3"
 
 # Prints null terminated string %si direct to VGA memory
 # First byte pointed to is the text attribute byte to use
-print:
+print16:
   push   $0xb800  # text video memory address
   pop    %es
   movw   (line_no),%di
@@ -25,31 +123,61 @@ print:
   stosw
   cmp    $0,%al
   jne    print_loop
-  movw   (line_no),%di
-  addw   $160,%di
-  movw   %di,(line_no)   # move to the next line
-  # TODO: doesn't handle scrolling the screen if fill the screen
+  addw   $160,(line_no)  # move to the next line
   ret
 
-# Panic and stop running
-panic:
-  movw   $halt_msg,%si
-  call   print
- halt:
+panic16:
+  movw   $0,(line_no)    # show at top of screen
+  call   print16
+ halt16:
   hlt
-  jmp    halt
+  jmp    halt16
 
-# Enable A20 Gate
-enable_a20:
+# Main entry where the program runs from
+main16:
+  # Print welcome/version info
+  movw   $welcome_msg1,%si
+  call   print16
+  movw   $welcome_msg2,%si
+  call   print16
+
+  # Read the second stage boot loader after the master boot record
+  movw   $lba_data,%si
+  movb   $0x42,%ah
+  int    $0x13
+
+  movw   $read_error,%si
+  jc     panic16
+
+  movw   (0x7DFE),%ax
+  cmpw   $0xAA55,%ax  # testing the signature
+  jne    panic16
+
+  movw   (0x8100),%ax
+  cmpw   $0x55AA,%ax  # testing the signature
+  jne    panic16
+
+  movw   $640,(line_no)
+  movw   $read_okay,%si
+  call   print16
+
+  # Clear interrupt flag
+  cli
+
+  # Enable A20 Gate
   movw   $0x2401,%ax
   int    $0x15
-  ret
+  
+  movw   $a20_okay_msg,%si
+  call   print16
 
-# Setup 32bit mode
-setup_32:
   # Load Global Descriptor Table
   lgdt   gdt32ptr
 
+  movw   $gdt_okay_msg,%si
+  call   print16
+
+  # Setup 32bit mode
   # Load Control Register CR0
   # Enable Protected Mode (Bit0 in CR0)
   # Store Control Register CR0
@@ -67,240 +195,112 @@ setup_32:
   movl   %eax,%gs
   ljmp   $0x0008,$(enter_protected_mode)
 
+# Code switches to 32-bit code here
+.code32
+.org 0x7D60
+.equ enter_protected_mode,0x7D60
 
-# Read the second stage boot loader after the master boot record
-read_second_stage:
-  movw   $lba_data,%si
-  movb   $0x42,%ah
-  int    $0x13
-  jc     error
-  movw   $0x7DFE,%di
-  movw   (%di),%ax
-  cmpw   $0xaa55,%ax  # testing the signature
-  jne    error
-  movw   $0x8100,%di
-  movw   (%di),%ax
-  cmpw   $0x55aa,%ax  # testing the signature
-  jne    error
-  movw   $640,%di
-  movw   %di,(line_no)   # move to the next line
-  movw   $read_okay,%si
-  call   print
+  movl   $pm_okay_msg,%esi
+  call   print32
+
+  # Jump to the code in the 2nd disk sector
+  jmp    enter_second_stage
+
+  # Panic and stop running if we fall through
+ panic32:
+  xorl   %eax,%eax
+  movl   %eax,(line_no)
+  movl   $halt_msg,%esi
+  call   print32
+ halt:
+  hlt
+  jmp    halt
+
+# Prints null terminated string %si direct to VGA memory
+# First byte pointed to is the text attribute byte to use
+print32:
+  movl   $0xb8000,%edi    # text video memory address
+  addl   (line_no),%edi
+  lodsb
+  mov    %al,%ah
+ print_loop32:
+  lodsb
+  stosw
+  or     %al,%al
+  jne    print_loop32
+  movl   (line_no),%edi
+  addl   $160,%edi
+  movl   %edi,(line_no)   # move to the next line
+  # Note: doesn't handle scrolling the screen so don't print more than 24 lines
   ret
- error:
-  movw   $read_error,%si
-  call   print
-  ret
-
-# Main entry where the program runs from
-main:
-  movw   $welcome_msg1,%si
-  call   print
-  movw   $welcome_msg2,%si
-  call   print
-
-  movw   $crlf,%si
-  call   print
-  call   read_second_stage
-  call   enable_a20
-  cli
-  call   setup_32
-  # call   second_stage
-  call   panic
 
 
-# Text attribute values
-.equ BOLD,   0x0F
-.equ NORMAL, 0x08
-.equ RED,    0x0C
-.equ GREEN,  0x0A
-
-
-.org 0x7CF0
-.equ crlf,0x7CF0
-  .byte  NORMAL
-  .asciz ""
-
-.org 0x7D00
-.equ welcome_msg1,0x7D00
-  .byte  BOLD
-  .asciz " MagicCore RTOS loader"
-
-.org 0x7D20
-.equ welcome_msg2,0x7D20
-  .byte  NORMAL
-  .asciz " Copyright (C) 2023, John Ryland"
-
-.org 0x7D42
-.equ read_error,0x7D42
-  .byte  RED
-  .asciz " Failed"
-
-.org 0x7D50
-.equ read_okay,0x7D50
-  .byte  GREEN
-  .asciz " Passed"
-
-.org 0x7D59
-.equ halt_msg,0x7D59
-  .byte  RED
-  .asciz " Halting"
-
-.org 0x7D63
-.equ line_no,0x7D63
-  .word 160    # Text position
-
-.org 0x7D68
-.equ lba_data,0x7D68
-  .byte 0x10, 0x00  # packet size
-  .byte 0x03, 0x00  # sectors to read
-  .long 0x00007C00  # load address / destination
-  .long 0x00000000  # start sector
-
-.org 0x7D78
-.equ gdt,0x7D78
-   # Null Descriptor
-   .word 0x0000, 0x0000
-   .word 0x0000, 0x0000
-   # .byte 0x00, 0b00000000, 0b00000000, 0x00
-   # Code Descriptor
-   .word 0xffff, 0x0000
-   # .byte 0x00, 0b10011010, 0b11001111, 0x00
-   .byte 0x00, 0x9A, 0xCF, 0x00
-   # Data Descriptor
-   .word 0xffff, 0x0000
-   # .byte 0x00, 0b10010010, 0b11001111, 0x00
-   .byte 0x00, 0x92, 0xCF, 0x00
-
-.org 0x7D78+28
-.equ gdt32ptr,0x7D78+28
-   .word 23      # (gdt_end - gdt - 1)
-   .long gdt     # (gdt + INITSEG * 0x10 + INITOFF)
-
-
-# Magic value the BIOS looks for to tell if it is a valid MBR
+# Magic value the BIOS looks for to tell if it is a valid MBR (last 2 bytes of the 1st disk sector)
 .org 0x7C00 + 510
   .word 0xAA55
 
-# From below here is the second stage which we load and isn't loaded by the BIOS
 
 .org 0x7E00
-second_stage:
-  movw   $crlf,%si
-  call   print
-  movw   $crlf,%si
-  call   print
-  #call   panic
+# From below here is the second stage which we load and wasn't loaded by the BIOS
 
-  movw   $second_start,%si
-  call   print
+.org 0x7E10
+.equ enter_second_stage,0x7E10
 
-  movw   $crlf,%si
-  call   print
+  movl   $second_stage_okay_msg,%esi
+  call   print32
 
-  cli
-  call   setup_32
-
-  call   panic
-
-
-#print32:
-#  push   $0xb800  # text video memory address
-#  pop    %es
-#  movw   (line_no),%di
-#  lodsb
-#  mov    %al,%ah
-# print_loop32:
-#  lodsb
-#  stosw
-#  cmp    $0,%al
-#  jne    print_loop32
-#  movw   (line_no),%di
-#  addw   $160,%di
-#  movw   %di,(line_no)   # move to the next line
-#  # TODO: doesn't handle scrolling the screen if fill the screen
-#  ret
-#
-#second_stage32:
-#
-#
-#
-#
-#  movw   $second_start,%si
-#  call   print32
-#
-#  movw   $crlf,%si
-#  call   print32
-
-
-.code32
-
-.org 0x7F80
-.equ enter_protected_mode,0x7F80
-
-
-# .code32
-#----------------- load CR3 with PML4 -----------------------------------------------
+  # load CR3 with PML4
   # Clear the first 0xE000 bytes following 0x1000000.
-  movl $0x01000000, %edi
-  movl %edi, %cr3
-  clrl %eax
-  movl $0x0000e000, %ecx
-  rep stosl
-  movl %cr3, %edi
-
-movl $0x07690748,0xb8000   # Print 'Hi'
-hl:
-  hlt
-  jmp  hl
+  movl   $0x01000000,%edi
+  movl   %edi,%cr3
+  clrl   %eax
+  movl   $0x0000e000,%ecx
+  rep    stosl
+  movl   %cr3,%edi
+  
+  movl   $cr3_okay_msg,%esi
+  call   print32
 
   # Set the initial page tables.
   # Note that we OR with 0x7 here to allow user-space access, except in the
   # first 2 MiB. We also do this with 0x200 to allow forking the page.
 
   # Page-Map Level 4
-  movl $0x01002000, (%edi)
-  addl $0x00001000, %edi
-
+  movl   $0x01002000,(%edi)
+  addl   $0x00001000,%edi
   # Page-Directory Pointer Table
-  movl $0x01004000, (%edi)
-  addl $0x00001000, %edi
-
+  movl   $0x01004000,(%edi)
+  addl   $0x00001000,%edi
   # Page-Directory (no user-space access here)
-  movl $0x01006000, (%edi) # (First 2 MiB)
-  movl $0x01008000, 8(%edi) # (Second 2 MiB)
-  addl $0x1000, %edi
+  movl   $0x01006000,(%edi)   # (First 2 MiB)
+  movl   $0x01008000,8(%edi)  # (Second 2 MiB)
+  addl   $0x1000,%edi
+  # Page-Table, Memory map the first 4 MiB.
+  clrl   %ebx
+  movl   $1024,%ecx
 
-  # Page-Table
-  # Memory map the first 4 MiB.
-  clrl %ebx
-  movl $1024, %ecx
+ set_entry:
+  mov    %ebx,(%edi)
+  add    $0x1000,%ebx
+  add    $8,%edi
+  loop   set_entry
 
-#SetEntry:
-#   mov %ebx, (%edi)
-#   add $0x1000, %ebx
-#   add $8, %edi
-#   loop SetEntry
-##----------------- load CR3 with PML4 -----------------------------------------------
-#
+  movl   $pagemap_okay_msg,%esi
+  call   print32
 
-  xorl   %edi,%edi
-  movl   $0x0b8000,%edi
-  movb   $'-',%al
-  stosb
-  stosb
-  stosb
-  # ret
-hl2:
-  hlt
-  jmp  hl2
+  # Entry in to our C code (shouldn't return control)
+  call    _start32
 
-
+  jmp     panic32
 
 .org 0x8000
-.equ second_start,0x8000
+.equ second_stage_okay_msg,0x8000
   .byte  GREEN
-  .asciz " Second start"
+  .asciz "[X] 2nd Stage"
+
+.org 0x8030
+.equ hi_str,0x8030
+  .long  0x07690748
 
 
 # Our own magic value for checking the second stage loaded properly

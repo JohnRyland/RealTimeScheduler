@@ -1,5 +1,9 @@
 #!/bin/bash
-
+#
+# Bootloader platforms
+# Copyright (C) 2023, John Ryland
+# All rights reserved.
+#
 
 PLATFORMS="
   i386
@@ -15,7 +19,6 @@ PLATFORMS="
   m68k
   sh4
 "
-
 
 for PLATFORM in ${PLATFORMS}
 do

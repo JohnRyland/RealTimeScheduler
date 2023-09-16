@@ -1,23 +1,19 @@
 
-Possible target platforms:
 
-Perhaps in this order:
+# Bootloaders
+Copyright (C) 2023, John Ryland
+All rights reserved.
 
-qemu-system-i386
-qemu-system-x86_64
 
-qemu-system-arm
-qemu-system-aarch64
+## Possible target platforms:
 
-qemu-system-ppc
-qemu-system-ppc64
+Perhaps will implement in this order:
+ - i386,    x86_64
+ - arm,     aarch64
+ - ppc,     ppc64
+ - mips,    mips64
+ - riscv32, riscv64
+ - m68k
+ - sh4
 
-qemu-system-mips
-qemu-system-mips64
 
-qemu-system-riscv32
-qemu-system-riscv64
-
-qemu-system-m68k
-
-qemu-system-sh4

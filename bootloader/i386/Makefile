@@ -1,21 +1,23 @@
+#
+# x86 OS Bootloader Makefile
+# Copyright (C) 2023, John Ryland
+# All rights reserved.
+#
 
+boot.bin: start.o main.o
+	ld -static -no_pie -r start.o main.o -o boot.o -U start
+	strip -x -S boot.o
+	dd if=boot.o    of=boot.bin bs=1 skip=0x7DCC
+	dd if=/dev/zero of=boot.bin bs=512 seek=6 count=64
 
+main.o: main.c
+	gcc -m32 -static -nostdlib -c main.c -o main.o
 
-boot.bin: start.o
-	# dd if=start.o   of=boot.bin bs=1 skip=32256
-	# dd if=start.o   of=boot.bin bs=1 skip=0xBAFE
-	dd if=start.o   of=boot.bin bs=1 skip=0xBAA0
-	# dd if=start.o   of=boot.bin bs=1 skip=0x3AF1
-	# dd if=/dev/zero of=boot.bin bs=512 seek=2 count=64
-
-
-start.o: start.S
-	# gcc -m32 -static -nostdlib -c main.c -o main.o
-	gcc -m32 -static -nostdlib start.S main.c -o start.o -Wl,-U,start
-	strip -x -S start.o
+start.o: start.S main.c
+	gcc -m32 -static -nostdlib -c start.S -o start.o
 
 clean:
-	rm start.o boot.bin main.o
+	rm start.o boot.bin main.o boot.o
 
 dump: boot.bin
 	hexdump -C boot.bin
