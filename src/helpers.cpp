@@ -37,14 +37,14 @@ void status_to_adding_a_task(acceptance_codes status, const char *message)
 
   if (status == accepted)
   {
-    sprintf(buffer, "sucessfully added: %s", message);
+    snprintf(buffer, 80, "sucessfully added: %s", message);
     status_message(buffer);
   }
   else
   {
-    sprintf(buffer,"couldn't add: %s",message);
+    snprintf(buffer, 80, "couldn't add: %s",message);
     status_message(buffer);
-    sprintf(buffer,"  reason: %s",error_msgs[status]);
+    snprintf(buffer, 80, "  reason: %s",error_msgs[status]);
     status_message(buffer);
   }
 }
