@@ -13,14 +13,14 @@ All rights reserved.
 
 ## Introduction
 
-This is a very light and simple implementation of creating a schedule
+This is a very light and simple implementation of a scheduler
 using the earliest deadline algorithm.
 
 The schedule is created up to some near event horizon until the
 scheduler is able to schedule itself to run again to fill out the
 schedule again.
 
-The schedule is executed using a regular timer which updates a tick
+The schedule is executed using a regular hardware timer which updates a tick
 and determines the next task to run.
 
 There is some visualization of the schedule as it runs and this is
@@ -38,3 +38,11 @@ macOS version, to interface to some existing OS API.
 
 The plan is to get this working on the Pi Pico as a target platform.
 
+The scheduler hasn't been designed for multiple cores, it switches
+execution between tasks on a single processor which makes this good
+for low-end platforms like MCUs and devices like the Pi Pico,
+although the Pi Pico does have two cores it will be interesting to
+see if perhaps can have non-realtime on the main core and run this
+realtime scheduler on the second core to add some periodic tasks that
+can run in parallel. The Pi Pico only has 264k bytes of RAM so some
+care will be needed to make this fit in those constraints.
