@@ -3,13 +3,10 @@
   Copyright (c) 2022, John Ryland
   All rights reserved.
 */
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-
 #include "conio.h"
 #include "timer.h"
 #include "task.h"
+#include "helpers.h"
 
 // Because i'm lazy I thought it easiest to use a constant length array
 // for my schedule_list instead of using a linked list or other data struct
@@ -42,7 +39,7 @@ bool add_task_to_schedule(void (*func_ptr)(), id_t task_name, id_t wait_for,
   new_item->last_exec_start = 0;
   new_item->last_exec_end = 0;
   new_item->last_exec_time = 0;
-  new_item->min_exec_time = UINT_MAX;//-1;
+  new_item->min_exec_time = -1;
   new_item->max_exec_time = 0;
   new_item->total_exec_time = 0;
   new_item->average_exec_time = 0;
@@ -80,20 +77,27 @@ void calculate_stats(task_t *item)
 }
 
 static
+void print_str_int(const char* str, int val)
+{
+  print_str(str);
+  print_int(val);
+}
+
+static
 void display_item(task_t *item)
 {
   unsigned x = item->x_pos, y = item->y_pos;
-  gotoxy(x,y++);  printf("%s", item->name);
+  gotoxy(x,y++);  print_str(item->name);
   gotoxy(x,y++);
-  gotoxy(x,y++);  printf("times called:      %u ",item->times_called);
-  gotoxy(x,y++);  printf("deadline failures: %u ",item->deadline_failures);
-  gotoxy(x,y++);  printf("last exec time:    %u ",item->last_exec_time);
-  gotoxy(x,y++);  printf("min exec time:     %u ",item->min_exec_time);
-  gotoxy(x,y++);  printf("max exec time:     %u ",item->max_exec_time);
-  gotoxy(x,y++);  printf("total exec time:   %u ",item->total_exec_time);
-  gotoxy(x,y++);  printf("average exec time: %u ",item->average_exec_time);
-  gotoxy(x,y++);  printf("period:            %u ",item->period);
-  gotoxy(x,y++);  printf("evaluated upto:    %u ",item->time_evaluated_upto);
+  gotoxy(x,y++);  print_str_int("times called:      ", item->times_called);
+  gotoxy(x,y++);  print_str_int("deadline failures: ", item->deadline_failures);
+  gotoxy(x,y++);  print_str_int("last exec time:    ", item->last_exec_time);
+  gotoxy(x,y++);  print_str_int("min exec time:     ", item->min_exec_time);
+  gotoxy(x,y++);  print_str_int("max exec time:     ", item->max_exec_time);
+  gotoxy(x,y++);  print_str_int("total exec time:   ", item->total_exec_time);
+  gotoxy(x,y++);  print_str_int("average exec time: ", item->average_exec_time);
+  gotoxy(x,y++);  print_str_int("period:            ", item->period);
+  gotoxy(x,y++);  print_str_int("evaluated upto:    ", item->time_evaluated_upto);
 }
 
 void run_task(task_t *item)

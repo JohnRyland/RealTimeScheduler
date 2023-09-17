@@ -3,14 +3,11 @@
   Copyright (c) 2022, John Ryland
   All rights reserved.
 */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
+#include <cstring>  // memmove
 #include "conio.h"
 #include "timer.h"
 #include "schedule.h"
+#include "helpers.h"
 
 #define EVENT_HORIZON          (2 * UPDATE_SCHEDULE_RATE)
 //#define MAX_SCHEDULED_ITEMS    50
@@ -196,12 +193,18 @@ void purge_completed_scheduled_items()
       items_in_scheduled_item_list -= i;
       if (item_upto < i)
       {
-        printf("item_upto %i but have done items up to %i\n", item_upto, i);
+        print_str("item_upto ");
+        print_int(item_upto);
+        print_str(" but have done items up to ");
+        print_int(i);
         exit(-1);
       }
       if (i != item_upto)
       {
-        printf("item_upto %i is not equal to %i\n", item_upto, i);
+        print_str("item_upto ");
+        print_int(item_upto);
+        print_str(" is not equal to ");
+        print_int(i);
         exit(-1);
       }
       item_upto -= i;

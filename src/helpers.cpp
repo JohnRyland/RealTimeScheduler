@@ -8,24 +8,40 @@
 
 static unsigned status_row = 5;
 
+void print_str(const char* str)
+{
+  while (*str)
+    putch(*str++);
+}
+
+void print_int(int val)
+{
+  char buf[16];
+  buf[15] = 0;
+  int i;
+  for (i = 14; val; i--, val /= 10)
+    buf[i] = '0' + (val % 10);
+  print_str(buf + i + 1);
+}
+
 void status_message(const char *message)
 {
   gotoxy(2,status_row++);
-  puts2(message);
+  print_str(message);
 }
 
 [[ noreturn ]]
 void critical_error(const char *error_message)
 {
   clrscr();
-  printf("critical error: %s\n", error_message);
+  print_str("critical error: ");
+  print_str(error_message);
   timer.disable();
   exit(255);
 }
 
 void status_to_adding_a_task(acceptance_codes status, const char *message)
 {
-  char buffer[80];
   const char *error_msgs[6] = {
     "task accepted",
     "exec_bound > period",
@@ -37,16 +53,24 @@ void status_to_adding_a_task(acceptance_codes status, const char *message)
 
   if (status == accepted)
   {
-    snprintf(buffer, 80, "sucessfully added: %s", message);
-    status_message(buffer);
+    status_message("sucessfully added: ");
+    print_str(message);
   }
   else
   {
-    snprintf(buffer, 80, "couldn't add: %s",message);
-    status_message(buffer);
-    snprintf(buffer, 80, "  reason: %s",error_msgs[status]);
-    status_message(buffer);
+    status_message("couldn't add: ");
+    print_str(message);
+    status_message("  reason: ");
+    print_str(error_msgs[status]);
   }
+}
+
+static
+void print_str_int(const char* str, int val)
+{
+  print_str(str);
+  print_int(val);
+  print_str("\n");
 }
 
 static void kill_task(void* user_data)
@@ -67,28 +91,28 @@ static void kill_task(void* user_data)
   //critical_error("task has executed longer than it's exec_bound");
   clrscr();
   gotoxy(0,0);
-  printf("critical error: task has executed longer than it's exec_bound\n");
+  print_str    ("critical error: task has executed longer than it's exec_bound\n");
   timer.disable();
-  printf("Current tick:\n");
-  printf("   Tick:                      %i\n", current_tick());
-  printf("Task details:\n");
-  printf("   Name:                      %s\n", task->name);
-  printf("   wait_for:                  %i\n", task->wait_for);
-  printf("   start_not_before:          %i\n", task->start_not_before);
-  printf("   exec_bound:                %i\n", task->exec_bound);
-  printf("   complete_not_after:        %i\n", task->complete_not_after);
-  printf("   period:                    %i\n", task->period);
-  printf("   time_evaluated_upto:       %i\n", task->time_evaluated_upto);
-  printf("   saved_time_evaluated_upto: %i\n", task->saved_time_evaluated_upto);
-  printf("   last_exec_start:           %i\n", task->last_exec_start);
-  printf("   last_exec_end:             %i\n", task->last_exec_end);
-  printf("   last_exec_time:            %i\n", task->last_exec_time);
-  printf("   min_exec_time:             %i\n", task->min_exec_time);
-  printf("   max_exec_time:             %i\n", task->max_exec_time);
-  printf("   total_exec_time:           %i\n", task->total_exec_time);
-  printf("   average_exec_time:         %i\n", task->average_exec_time);
-  printf("   times_called:              %i\n", task->times_called);
-  printf("   deadline_failures:         %i\n", task->deadline_failures);
+  print_str    ("Current tick:\n");
+  print_str_int("   Tick:                      ", current_tick());
+  print_str    ("Task details:\n");
+  print_str    ("   Name:                      "); print_str(task->name); print_str("\n");
+  print_str_int("   wait_for:                  ", task->wait_for);
+  print_str_int("   start_not_before:          ", task->start_not_before);
+  print_str_int("   exec_bound:                ", task->exec_bound);
+  print_str_int("   complete_not_after:        ", task->complete_not_after);
+  print_str_int("   period:                    ", task->period);
+  print_str_int("   time_evaluated_upto:       ", task->time_evaluated_upto);
+  print_str_int("   saved_time_evaluated_upto: ", task->saved_time_evaluated_upto);
+  print_str_int("   last_exec_start:           ", task->last_exec_start);
+  print_str_int("   last_exec_end:             ", task->last_exec_end);
+  print_str_int("   last_exec_time:            ", task->last_exec_time);
+  print_str_int("   min_exec_time:             ", task->min_exec_time);
+  print_str_int("   max_exec_time:             ", task->max_exec_time);
+  print_str_int("   total_exec_time:           ", task->total_exec_time);
+  print_str_int("   average_exec_time:         ", task->average_exec_time);
+  print_str_int("   times_called:              ", task->times_called);
+  print_str_int("   deadline_failures:         ", task->deadline_failures);
   exit(255);
 }
 
@@ -170,7 +194,7 @@ void run_on_line_scheduler()
     while (current_tick() < item->start_not_before)
     {
       gotoxy(2,4);
-      printf("current tick: %u ",current_tick());
+      print_str_int("current tick: ", current_tick());
       // wait for the next tick
       // this will call draw_tasks
       delay(1, item->start_not_before);

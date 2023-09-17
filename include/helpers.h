@@ -7,6 +7,9 @@
 
 #include "schedule.h"
 
+void print_str(const char* str);
+void print_int(int val);
+
 [[ noreturn ]]
 void critical_error(const char *error_message);
 void status_message(const char *message);
