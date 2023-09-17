@@ -7,6 +7,22 @@
 
 #include "schedule.h"
 
+typedef int size_t;
+
+extern "C"
+{
+
+// runtime functions used that needs to be provided
+[[ noreturn ]]
+void exit(int);
+void* memset(void* dst, int val, size_t len);
+void* memmove(void* dst, const void* src, size_t len);
+void* memcpy(void* dst, const void* src, size_t len);
+void qsort(void *base, size_t nel, size_t width, int (*compar)(const void *, const void *));
+
+}
+
+// output helpers (avoids using printf)
 void print_str(const char* str);
 void print_int(int val);
 

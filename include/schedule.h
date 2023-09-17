@@ -5,17 +5,11 @@
 */
 #pragma once
 
-#include <cstdio>
-#include <cstdlib>
-#include <cassert>
-
 #include "timer.h"
 #include "task.h"
 
-
 #define UPDATE_SCHEDULE_RATE  1000   // every 1000 ticks schedule is updated
 // ie this is the event horizon
-
 
 // A scheduled_item is:
 //  - an aperiodic task, or

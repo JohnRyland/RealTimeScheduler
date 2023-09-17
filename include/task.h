@@ -5,7 +5,7 @@
 */
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
 // Types
 typedef uint32_t ticks_t;

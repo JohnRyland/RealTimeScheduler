@@ -3,7 +3,6 @@
   Copyright (c) 2022, John Ryland
   All rights reserved.
 */
-#include <cstring>  // memmove
 #include "conio.h"
 #include "timer.h"
 #include "schedule.h"
