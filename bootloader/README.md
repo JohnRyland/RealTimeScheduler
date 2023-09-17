@@ -5,6 +5,14 @@ Copyright (C) 2023, John Ryland
 All rights reserved.
 
 
+## Required host tools to build and test:
+
+
+### MacOS hosts
+ - brew install qemu
+ - brew install binutils
+
+
 ## Possible target platforms:
 
 Perhaps will implement in this order:

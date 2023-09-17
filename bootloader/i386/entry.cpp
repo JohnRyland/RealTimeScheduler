@@ -4,6 +4,8 @@
   All rights reserved.
 */
 
+#include "conio.h"
+
 // Some bogo delay value
 #define  DELAY  10000000
 
@@ -13,10 +15,11 @@
 #define  RED    0x0C
 #define  GREEN  0x0A
 
-// Current line
-int line;
+extern int main();
 
-void println(char attrib, char* str)
+static int line;
+
+void println(char attrib, const char* str)
 {
   volatile char* videoMemory = (char*)0xB8000;
   for (int i = 0; *str; i+=2)
@@ -28,13 +31,6 @@ void println(char attrib, char* str)
   line += 160;
 }
 
-void clrscr()
-{
-  volatile char* videoMemory = (char*)0xB8000;
-  for (int i = 0; i < 65535; ++i)
-    videoMemory[i] = 0;
-}
-
 int udelay(long x)
 {
   volatile char* videoMemory = (char*)0xB8000;
@@ -44,20 +40,34 @@ int udelay(long x)
   return t;
 }
 
-void start32()
+extern "C"
+void _start32()
 {
-  volatile char* videoMemory = (char*)0xB8000;
-  videoMemory[0] = '.'; // debug - outputs something without using pointers to data
+  ((char*)0xB8000)[0] = '.'; // debug - outputs something without using pointers to data
   line = 1760; // Display this after the bootloader's text
   println(GREEN, "[X] Entered C start");
-  udelay(DELAY);
+  gotoxy(0, 12);
+  puts2("[X] Conio");
+
+  // for (;;) ;
+  //udelay(DELAY);
+
   clrscr();
   line = 0;
   println(GREEN, "[X] Starting");
 
+  main();
+
   // Never return
   for (;;)
     ;
+}
+
+extern "C"
+void start32()
+{
+  ((char*)0xB8000)[0] = '.'; // debug - outputs something without using pointers to data
+  _start32();
 }
 
 

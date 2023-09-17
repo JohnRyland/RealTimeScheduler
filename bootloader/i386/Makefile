@@ -4,24 +4,66 @@
 # All rights reserved.
 #
 
-boot.bin: start.o main.o
-	ld -static -no_pie -r start.o main.o -o boot.o -U start
-	strip -x -S boot.o
-	dd if=boot.o    of=boot.bin bs=1 skip=0x7DCC
-	dd if=/dev/zero of=boot.bin bs=512 seek=6 count=64
+ARCH=x86_64
 
-main.o: main.c
-	gcc -m32 -static -nostdlib -c main.c -o main.o
+# FMT=Elf
+FMT=MachO
 
-start.o: start.S main.c
-	gcc -m32 -static -nostdlib -c start.S -o start.o
+INCLUDES=-I../../include -I../../include/driver -I.
+CFLAGS0=-Wall -static -ffreestanding -nostdlib $(INCLUDES)
+
+# If using GNU Toolchain
+ifeq ($(FMT),Elf)
+  CC=$(ARCH)-elf-gcc
+  LD=$(ARCH)-elf-ld
+  CFLAGS=$(CFLAGS0)
+  LFLAGS=-static -nostdlib -Ttext 0x0000 -Tdata 0x0000 -Tbss 0x0000
+
+# Else if using LLVM Toolchain on macOS
+else ifeq ($(FMT),MachO)
+  CC=gcc
+  LD=ld
+  CFLAGS=$(CFLAGS0) -m32 -fno-stack-protector -fno-builtin # -disable-simplify-libcalls
+  LFLAGS=-static -r # -disable-simplify-libcalls
+  # LFLAGS=-static
+endif
+
+OBJCOPY=/usr/local/opt/binutils/bin/gobjcopy
+SKIP=0x7C00
+
+OBJS=start.o entry.o main.o task.o helpers.o schedule.o driver.o runtime.o
+
+boot.bin: $(OBJS)
+	$(LD) $(LFLAGS) $(OBJS) -o boot.o
+	$(OBJCOPY) -O binary -x -S --set-start 0x7C00 --set-section-flags .bss=alloc,load,contents boot.o boot.obj
+	dd if=boot.obj  of=boot.bin bs=1 skip=$(SKIP)
+	dd if=/dev/zero of=boot.bin bs=512 seek=127 count=1
+
+task.o: ../../src/task.cpp
+main.o: ../../src/main.cpp
+helpers.o: ../../src/helpers.cpp
+schedule.o: ../../src/schedule.cpp
+
+# driver.o: driver.cpp
+
+%.o: ../../src/%.cpp
+	$(CC) $(CFLAGS) -c $< -o $@ -std=c++11
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.cpp
+	$(CC) $(CFLAGS) -c $< -o $@ -std=c++11
+
+%.o: %.S
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm start.o boot.bin main.o boot.o
+	rm $(OBJS) boot.o boot.obj boot.bin
 
 dump: boot.bin
 	hexdump -C boot.bin
 
 test: boot.bin
-	qemu-system-i386 -hda boot.bin
+	qemu-system-$(ARCH) boot.bin
 

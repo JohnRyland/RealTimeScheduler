@@ -11,11 +11,22 @@
 .org 0x7C00
 
 # Setup the registers and then jump to main
-_start16:
+.globl start
+start:
+#  cli
+#  movw  %cs,%ax   # Setup segment registers
+#  movw  %ax,%ds
+#  movw  %ax,%es
+#  movw  %ax,%ss
+  # mov bp,7c00h
+  # mov sp,7c00h            ; Setup a stack
+#  sti
   push   %cs
   pop    %ds
-  movw   $0x3,%ax
+  movw   $0x03,%ax
   int    $0x10     # reset the screen mode
+  movw   $0x1112,%ax
+  int    $0x10     # set 80x50 mode
   jmp    main16
 
 # Text attribute values
@@ -24,18 +35,18 @@ _start16:
 .equ RED,    0x0C
 .equ GREEN,  0x0A
 
-.org 0x7C0A
-.equ crlf,0x7C0A
+.org 0x7C0F
+.equ crlf,0x7C0F
   .byte  NORMAL
   .asciz ""
 
-.org 0x7C0D
-.equ welcome_msg1,0x7C0D
+.org 0x7C11
+.equ welcome_msg1,0x7C11
   .byte  BOLD
   .asciz "MagicCore RTOS v1.0"
 
-.org 0x7C25
-.equ welcome_msg2,0x7C25
+.org 0x7C26
+.equ welcome_msg2,0x7C26
   .byte  NORMAL
   .asciz "Copyright (C) 2023, John Ryland"
 
@@ -197,8 +208,8 @@ main16:
 
 # Code switches to 32-bit code here
 .code32
-.org 0x7D60
-.equ enter_protected_mode,0x7D60
+.org 0x7D68
+.equ enter_protected_mode,0x7D68
 
   movl   $pm_okay_msg,%esi
   call   print32
@@ -288,6 +299,9 @@ print32:
   movl   $pagemap_okay_msg,%esi
   call   print32
 
+  movl   $0x01008000,%eax  # (Second 2 MiB)
+  movl   %eax,%esp
+
   # Entry in to our C code (shouldn't return control)
   call    _start32
 
@@ -297,6 +311,10 @@ print32:
 .equ second_stage_okay_msg,0x8000
   .byte  GREEN
   .asciz "[X] 2nd Stage"
+
+#.globl memset
+#memset:
+  
 
 .org 0x8030
 .equ hi_str,0x8030
