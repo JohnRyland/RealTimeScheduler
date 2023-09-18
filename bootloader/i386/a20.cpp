@@ -79,9 +79,9 @@ void fast_gate_enable_a20()
 bool query_a20_support()
 {
   __asm__ __volatile__(
-  	"clc \n"
-	  "movw $0x2403,%%ax \n"
-  	"int  $0x15 \n"
+    "clc \n"
+    "movw $0x2403,%%ax \n"
+    "int  $0x15 \n"
     "setc %%al \n"
   );
   // TODO
@@ -91,8 +91,8 @@ bool query_a20_support()
 void bios_enable_a20()
 {
   __asm__ __volatile__(
-	  "movw $0x2401,%%ax \n"
-  	"int  $0x15 \n"
+    "movw $0x2401,%%ax \n"
+    "int  $0x15 \n"
     "setc %%al \n"
   );
   // TODO:
