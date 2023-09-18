@@ -5,15 +5,10 @@
 */
 
 #include "conio.h"
+#include "constants.h"
 
 // Some bogo delay value
-#define  DELAY  10000000
-
-// Text attribute values
-#define  BOLD   0x0F
-#define  NORMAL 0x08
-#define  RED    0x0C
-#define  GREEN  0x0A
+#define  DELAY  5000000
 
 extern int main();
 
@@ -40,34 +35,36 @@ int udelay(long x)
   return t;
 }
 
-extern "C"
-void _start32()
+void halt()
 {
-  ((char*)0xB8000)[0] = '.'; // debug - outputs something without using pointers to data
-  line = 1760; // Display this after the bootloader's text
-  println(GREEN, "[X] Entered C start");
-  gotoxy(0, 12);
-  puts2("[X] Conio");
-
-  // for (;;) ;
-  //udelay(DELAY);
-
-  clrscr();
-  line = 0;
-  println(GREEN, "[X] Starting");
-
-  main();
-
-  // Never return
   for (;;)
     ;
 }
 
 extern "C"
-void start32()
+void _start32()
 {
-  ((char*)0xB8000)[0] = '.'; // debug - outputs something without using pointers to data
-  _start32();
+  ((char*)VGA_TEXT_BASE)[2] = '.'; // debug - outputs something without using pointers to data
+  line = 1760; // Display this after the bootloader's text
+  println(GREEN, "[X] Entered C start");
+  gotoxy(0, 12);
+  puts2("[X] Conio");
+  udelay(DELAY);
+  clrscr();
+  line = 0;
+  println(NORMAL, "Starting...");
+  udelay(DELAY);
+  // Start the scheduler
+  main();
+  // Never return
+  halt();
 }
 
+extern "C"
+void start32()
+{
+  // Mach-O compiled version comes in via this function
+  ((char*)VGA_TEXT_BASE)[0] = '.'; // debug - outputs something without using pointers to data
+  _start32();
+}
 

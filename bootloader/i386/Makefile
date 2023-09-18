@@ -17,15 +17,14 @@ ifeq ($(FMT),Elf)
   CC=$(ARCH)-elf-gcc
   LD=$(ARCH)-elf-ld
   CFLAGS=$(CFLAGS0)
-  LFLAGS=-static -nostdlib -Ttext 0x0000 -Tdata 0x0000 -Tbss 0x0000
+  LFLAGS=-static -nostdlib -Ttext 0x0000 # -Tdata 0x10000 -Tbss 0x20000
 
 # Else if using LLVM Toolchain on macOS
 else ifeq ($(FMT),MachO)
   CC=gcc
   LD=ld
   CFLAGS=$(CFLAGS0) -m32 -fno-stack-protector -fno-builtin # -disable-simplify-libcalls
-  LFLAGS=-static -r # -disable-simplify-libcalls
-  # LFLAGS=-static
+  LFLAGS=-static
 endif
 
 OBJCOPY=/usr/local/opt/binutils/bin/gobjcopy
@@ -35,6 +34,7 @@ OBJS=start.o entry.o main.o task.o helpers.o schedule.o driver.o runtime.o
 
 boot.bin: $(OBJS)
 	$(LD) $(LFLAGS) $(OBJS) -o boot.o
+	$(LD) $(LFLAGS) -r $(OBJS) -o boot.o
 	$(OBJCOPY) -O binary -x -S --set-start 0x7C00 --set-section-flags .bss=alloc,load,contents boot.o boot.obj
 	dd if=boot.obj  of=boot.bin bs=1 skip=$(SKIP)
 	dd if=/dev/zero of=boot.bin bs=512 seek=127 count=1
