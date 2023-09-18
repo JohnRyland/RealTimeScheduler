@@ -8,6 +8,7 @@
 #include "timer.h"
 #include "runtime.h"
 #include "constants.h"
+#include "x86.h"
 
 
 #define USER_TIMER_INT 0x08  // Could use INT 0x1C or INT 0x70 instead with a few modifications
@@ -15,7 +16,6 @@
 
 #define interrupt
 #define NULL nullptr
-typedef void (*isr_routine_t)(...);
 
 
 // Variables
@@ -27,52 +27,6 @@ static tick_t preempt_at_tick = 0;
 static isr_routine_t user_preempt_routine = NULL;
 static bool block_preemptor = false;
 static bool installed_timer_interrupt_in_service = false;
-
-
-
-int inportb(int port)
-{
-  int val = 0;
-  __asm__ __volatile__ (
-    "movl %%eax,%%eax\n"
-    "movl %1,%%edx\n"
-    "inb  %%dx,%%al  # read the port\n"
-    "movl %%eax,%0"
-    : "=r"(val)
-    : "r"(port)
-    : "%eax", "%edx");
-  return val;
-}
-
-void outportb(int port, int val)
-{
-  __asm__ __volatile__ (
-    "xorl %0,%%eax\n"
-    "movl %1,%%edx\n"
-    "outb %%al,%%dx  # write to the port\n"
-    : : "r"(val), "r"(port)
-    : "%eax", "%edx");
-}
-
-void enable()
-{
-  __asm__ __volatile__ ("sti");
-}
-
-void disable()
-{
-  __asm__ __volatile__ ("cli");
-}
-
-isr_routine_t getvect(int vec)
-{
-  return nullptr;
-}
-
-void setvect(int vec, isr_routine_t)
-{
-}
-
 
 
 // Current text position
@@ -137,39 +91,10 @@ void puts2(const char* str)
 }
 
 
-
-
-
-
-
-
-
 void init_timer_driver()
 {
   // TODO
 }
-
-/*
-void delay(ticks_t number_of_ticks, tick_t deadline)
-{
-  // TODO
-}
-
-tick_t current_tick()
-{
-  // TODO
-  return 0;
-}
-
-void set_current_tick(tick_t tick)
-{
-  // TODO
-}
-*/
-
-
-
-
 
 // sets the speed at which timer interupts are made
 static

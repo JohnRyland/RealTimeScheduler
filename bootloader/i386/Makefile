@@ -30,7 +30,7 @@ endif
 OBJCOPY=/usr/local/opt/binutils/bin/gobjcopy
 SKIP=0x7C00
 
-OBJS=start.o entry.o main.o task.o helpers.o schedule.o driver.o runtime.o
+OBJS=start.o entry.o main.o task.o helpers.o schedule.o driver.o runtime.o a20.o x86.o
 
 boot.bin: $(OBJS)
 	$(LD) $(LFLAGS) $(OBJS) -o boot.o
