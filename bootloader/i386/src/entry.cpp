@@ -6,11 +6,10 @@
 
 #include "conio.h"
 #include "constants.h"
+#include "helpers.h"
 
 // Some bogo delay value
 #define  DELAY  5000000
-
-extern int main();
 
 static int line;
 
@@ -54,8 +53,10 @@ void _start32()
   line = 0;
   println(NORMAL, "Starting...");
   udelay(DELAY);
+
   // Start the scheduler
-  main();
+  main(0, nullptr);
+
   // Never return
   halt();
 }

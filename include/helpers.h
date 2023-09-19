@@ -19,6 +19,7 @@ void* memset(void* dst, int val, size_t len);
 void* memmove(void* dst, const void* src, size_t len);
 void* memcpy(void* dst, const void* src, size_t len);
 void qsort(void *base, size_t nel, size_t width, int (*compar)(const void *, const void *));
+int main(int argc, const char* argv[]);
 
 }
 

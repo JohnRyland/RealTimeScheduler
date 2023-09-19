@@ -14,6 +14,8 @@ bool a20_is_enabled()
 
   volatile uint8_t* addr0 = (uint8_t*)(0x00000500);
   volatile uint8_t* addr1 = (uint8_t*)(0x00100500); // addr0 + 1MB
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
   uint8_t orig_val0 = *addr0;
   uint8_t orig_val1 = *addr1;
   *addr0 = 0;
@@ -21,6 +23,7 @@ bool a20_is_enabled()
   bool enabled = (*addr0 != *addr1);
   *addr0 = orig_val0;
   *addr1 = orig_val1;
+#pragma GCC diagnostic pop
 
   enable();  // sti
   return enabled;

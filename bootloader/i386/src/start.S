@@ -18,8 +18,8 @@ start:
 #  movw  %ax,%ds
 #  movw  %ax,%es
 #  movw  %ax,%ss
-  # mov bp,7c00h
-  # mov sp,7c00h            ; Setup a stack
+#  mov bp,7c00h
+#  mov sp,7c00h    # Setup a stack
 #  sti
   push   %cs
   pop    %ds
@@ -79,17 +79,9 @@ start:
 
 .org 0x7C75+2
 .equ gdt,0x7C75+2
-  # Null Descriptor
-  .word 0x0000, 0x0000
-  .word 0x0000, 0x0000
-  # Code Descriptor
-  .word 0xffff, 0x0000
-  .byte 0x00, 0b10011010, 0b11001111, 0x00
-  # .byte 0x00, 0x9A, 0xCF, 0x00
-  # Data Descriptor
-  .word 0xffff, 0x0000
-  .byte 0x00, 0b10010010, 0b11001111, 0x00
-  # .byte 0x00, 0x92, 0xCF, 0x00
+  .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0b00000000, 0b00000000, 0x00  # Null Descriptor
+  .byte 0xff, 0xff, 0x00, 0x00, 0x00, 0b10011010, 0b11001111, 0x00  # Code Descriptor
+  .byte 0xff, 0xff, 0x00, 0x00, 0x00, 0b10010010, 0b11001111, 0x00  # Data Descriptor
 
 .org 0x7C75+30
 .equ gdt32ptr,0x7C75+30
@@ -109,7 +101,7 @@ start:
 .org 0x7C99+20
 .equ pm_okay_msg, 0x7C99+20
   .byte GREEN
-  .asciz "[X] 32bit"
+  .asciz "[X] 32-bit"
 
 .org 0x7CB9
 .equ pagemap_okay_msg, 0x7CB9
@@ -199,12 +191,13 @@ main16:
   # Setup all Segment Registers
   # and reload Code Segment, Instruction Pointer
   xorl   %eax,%eax
-  movw   $0x10,%ax
-  movl   %eax,%ds
-  movl   %eax,%es
   movl   %eax,%fs
   movl   %eax,%gs
-  ljmp   $0x0008,$(enter_protected_mode)
+  movb   $0x10,%al
+  movl   %eax,%ds
+  movl   %eax,%es
+  movl   %eax,%ss
+  ljmp   $0x0008,$(enter_protected_mode)  # Sets %cs to 0x08 and switches to 32-bit mode
 
 # Code switches to 32-bit code here
 .code32
@@ -215,7 +208,7 @@ main16:
   call   print32
 
   # Jump to the code in the 2nd disk sector
-  jmp    enter_second_stage
+  ljmp   $0x0008,$(enter_second_stage)
 
   # Panic and stop running if we fall through
  panic32:
@@ -288,8 +281,8 @@ print32:
   addl   $0x1000,%edi
   # Page-Table, Memory map the first 4 MiB.
   clrl   %ebx
-  movl   $1024,%ecx
 
+  movl   $1024,%ecx  # 1024 entries each 4kb which is 4MB
  set_entry:
   mov    %ebx,(%edi)
   add    $0x1000,%ebx
@@ -302,24 +295,22 @@ print32:
   movl   $0x01008000,%eax  # (Second 2 MiB)
   movl   %eax,%esp
 
-  # Entry in to our C code (shouldn't return control)
-  call    _start32
+  jmp    _start
 
-  jmp     panic32
+.globl _start
+_start:
+  # Entry in to our C code (shouldn't return control)
+  call   _start32
+  jmp    panic32
 
 .org 0x8000
 .equ second_stage_okay_msg,0x8000
   .byte  GREEN
   .asciz "[X] 2nd Stage"
 
-#.globl memset
-#memset:
-  
-
-.org 0x8030
-.equ hi_str,0x8030
-  .long  0x07690748
-
+#
+# Space here for any asm code needed for early start
+#
 
 # Our own magic value for checking the second stage loaded properly
 .org 0x8100
