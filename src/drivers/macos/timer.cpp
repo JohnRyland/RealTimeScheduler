@@ -245,7 +245,12 @@ timer_driver_t macos_timer =
   slow_down_timer
 };
 
-timer_driver_t timer;
+// timer_driver_t timer;
+
+timer_driver_t& get_timer_ref()
+{
+  return macos_timer;
+}
 
 void init_timer_driver()
 {

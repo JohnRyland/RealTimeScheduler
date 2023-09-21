@@ -36,7 +36,7 @@ void draw_bar_row(unsigned x, unsigned y, char ch1)
   repeat_putch('\xc4', 59);
 }
 
-int main(int argc, const char* argv[])
+int main(int /*argc*/, const char* /*argv*/[])
 {
   // draw a title screen with instructions
   clrscr();
