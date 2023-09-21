@@ -6,7 +6,8 @@
 #include "helpers.h"
 #include "conio.h"
 
-static unsigned status_row = 5;
+static
+unsigned status_row = 5;
 
 void print_str(const char* str)
 {
@@ -14,13 +15,29 @@ void print_str(const char* str)
     putch(*str++);
 }
 
+/*
+static
+void print_number(uint64_t val, uint8_t base)
+{
+  static const char digits[] = "0123456789ABCDEF";
+  char buf[22] = {}; // big enough for 64-bit number in decimal
+  char* ptr = buf + 21;
+  if (base > 16)
+    base = 16;
+  do {
+    *(--ptr) = digits[val % base];
+  } while (val /= base);
+  print_str(ptr);
+}
+*/
+
 void print_int(int val)
 {
-  char buf[16];
-  buf[15] = 0;
-  int i;
-  for (i = 14; val; i--, val /= 10)
-    buf[i] = '0' + (val % 10);
+  char buf[22] = {}; // big enough for 64-bit number in decimal
+  int i = 20;
+  do {
+    buf[i--] = '0' + (val % 10);
+  } while (val /= 10);
   print_str(buf + i + 1);
 }
 
@@ -37,7 +54,7 @@ void critical_error(const char *error_message)
   print_str("critical error: ");
   print_str(error_message);
   timer.disable();
-  exit(255);
+  exit(132);
 }
 
 void status_to_adding_a_task(acceptance_codes status, const char *message)
@@ -73,7 +90,8 @@ void print_str_int(const char* str, int val)
   print_str("\n");
 }
 
-static void kill_task(void* user_data)
+static
+void kill_task(void* user_data)
 {
   task_t* task = reinterpret_cast<task_t*>(user_data);
 
@@ -87,6 +105,7 @@ static void kill_task(void* user_data)
   // my pre-emptor is unstable and causes the system to hang so
   // this function isn't called any more
   timer.uninstall_preemptor(); //  this should happen automatically 
+  exit(133);
   
   //critical_error("task has executed longer than it's exec_bound");
   clrscr();
@@ -113,7 +132,7 @@ static void kill_task(void* user_data)
   print_str_int("   average_exec_time:         ", task->average_exec_time);
   print_str_int("   times_called:              ", task->times_called);
   print_str_int("   deadline_failures:         ", task->deadline_failures);
-  exit(255);
+  exit(134);
 }
 
 // bar representation of the scheduled tasks and how they will run
@@ -223,7 +242,8 @@ void run_on_line_scheduler()
       /* try again */
     }
 
-    while (timer.install_preemptor(current_tick() + item->task->exec_bound, kill_task, item->task) != true)
+    const int fudgeMargin = 5;
+    while (timer.install_preemptor(current_tick() + item->task->exec_bound + fudgeMargin, kill_task, item->task) != true)
     {
       /* try again */
     }

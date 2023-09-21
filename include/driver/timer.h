@@ -40,6 +40,10 @@ struct timer_driver_t
   //void (*set_speed)(unsigned int rate);
 };
 
-extern timer_driver_t timer;
+//extern timer_driver_t timer;
+
+#define timer   get_timer_ref()
+
+timer_driver_t& get_timer_ref();
 
 

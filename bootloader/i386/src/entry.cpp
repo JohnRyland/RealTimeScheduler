@@ -34,12 +34,6 @@ int udelay(long x)
   return t;
 }
 
-void halt()
-{
-  for (;;)
-    ;
-}
-
 extern "C"
 void _start32()
 {
@@ -55,10 +49,10 @@ void _start32()
   udelay(DELAY);
 
   // Start the scheduler
-  main(0, nullptr);
+  int ret = main(0, nullptr);
 
   // Never return
-  halt();
+  exit(ret);
 }
 
 extern "C"

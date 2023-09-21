@@ -11,11 +11,37 @@
 #define EVENT_HORIZON          (2 * UPDATE_SCHEDULE_RATE)
 //#define MAX_SCHEDULED_ITEMS    50
 
-unsigned items_in_scheduled_item_list = 0;
-unsigned item_upto = 0;
-unsigned index_sorted_upto = 0;
+static
+unsigned _items_in_scheduled_item_list = 0;
 
-scheduled_item_t scheduled_item_list[MAX_SCHEDULED_ITEMS - 1];
+static
+unsigned _item_upto = 0;
+
+static
+unsigned _index_sorted_upto = 0;
+
+static
+scheduled_item_t _scheduled_item_list[MAX_SCHEDULED_ITEMS - 1];
+
+unsigned get_items_in_scheduled_item_list()
+{
+  return _items_in_scheduled_item_list;
+}
+
+unsigned& get_item_upto()
+{
+  return _item_upto;
+}
+
+unsigned get_index_sorted_upto()
+{
+  return _index_sorted_upto;
+}
+
+scheduled_item_t* get_scheduled_item_list()
+{
+  return _scheduled_item_list;
+}
 
 void run_scheduled_item(scheduled_item_t *item)
 {
@@ -76,8 +102,8 @@ int scheduled_item_cmp(const void *a, const void *b)
 // order the schedule by ordering items in the scheduled item list
 void sort_schedule()
 {
-  qsort(static_cast<void *>(&scheduled_item_list[index_sorted_upto]), items_in_scheduled_item_list - index_sorted_upto, sizeof(scheduled_item_t), scheduled_item_cmp);
-  index_sorted_upto = items_in_scheduled_item_list;
+  qsort(static_cast<void *>(&_scheduled_item_list[_index_sorted_upto]), _items_in_scheduled_item_list - _index_sorted_upto, sizeof(scheduled_item_t), scheduled_item_cmp);
+  _index_sorted_upto = _items_in_scheduled_item_list;
 }
 
 bool add_to_scheduled_item_list(task_t *task, tick_t start_not_before, tick_t complete_not_after)
@@ -88,36 +114,36 @@ bool add_to_scheduled_item_list(task_t *task, tick_t start_not_before, tick_t co
   // and copy the second half into the first half when the item we are up to
   // passes half way, then update all "up to" variables by subtracting the
   // size of half the array
-  if (items_in_scheduled_item_list == MAX_SCHEDULED_ITEMS)
+  if (_items_in_scheduled_item_list == MAX_SCHEDULED_ITEMS)
   {
-    //critical_error("items in scheduled_item_list too large");
+    //critical_error("items in _scheduled_item_list too large");
     return false;
   }
 
-  scheduled_item_t *new_item = &scheduled_item_list[items_in_scheduled_item_list];
+  scheduled_item_t *new_item = &_scheduled_item_list[_items_in_scheduled_item_list];
   new_item->done = false;
   new_item->task = task;
   new_item->start_not_before = start_not_before;
   new_item->complete_not_after = complete_not_after;
 
-  if (items_in_scheduled_item_list && index_sorted_upto)
+  if (_items_in_scheduled_item_list && _index_sorted_upto)
   {
-    if (scheduled_item_list[index_sorted_upto - 1].complete_not_after > start_not_before)
+    if (_scheduled_item_list[_index_sorted_upto - 1].complete_not_after > start_not_before)
     {
       // find first item (from the one we are up to) which completes before this one can start
       // this is the first item which doesn't overlap, we then need to re-sort from this first overlapping item to the last item
       // essentially, this will be doing an insertion, however it might not be as straight forward as doing a bsearch.
-      unsigned old_index_sorted_upto = index_sorted_upto;
-      index_sorted_upto = item_upto;
-      while ((scheduled_item_list[index_sorted_upto].complete_not_after < start_not_before) && (index_sorted_upto <= old_index_sorted_upto))
+      unsigned old_index_sorted_upto = _index_sorted_upto;
+      _index_sorted_upto = _item_upto;
+      while ((_scheduled_item_list[_index_sorted_upto].complete_not_after < start_not_before) && (_index_sorted_upto <= old_index_sorted_upto))
       {
-        index_sorted_upto++;
+        _index_sorted_upto++;
       }
       sort_schedule();
     }
   }
 
-  items_in_scheduled_item_list++;
+  _items_in_scheduled_item_list++;
   return true;
 }
 
@@ -177,41 +203,41 @@ static
 void purge_completed_scheduled_items()
 {
   // Only do this when the buffer is half full to avoid doing this every time
-  if (items_in_scheduled_item_list >= MAX_SCHEDULED_ITEMS / 2)
+  if (_items_in_scheduled_item_list >= MAX_SCHEDULED_ITEMS / 2)
   {
     /*
     // Validate the list
-    for (i = 0; i < item_upto; ++i)
+    for (i = 0; i < _item_upto; ++i)
     {
-      assert(scheduled_item_list[i].done == true);
+      assert(_scheduled_item_list[i].done == true);
     }
     */
-    unsigned i = item_upto;
+    unsigned i = _item_upto;
     if (i > 1)
     {
-      items_in_scheduled_item_list -= i;
-      if (item_upto < i)
+      _items_in_scheduled_item_list -= i;
+      if (_item_upto < i)
       {
-        print_str("item_upto ");
-        print_int(item_upto);
+        print_str("_item_upto ");
+        print_int(_item_upto);
         print_str(" but have done items up to ");
         print_int(i);
-        exit(-1);
+        exit(135);
       }
-      if (i != item_upto)
+      if (i != _item_upto)
       {
-        print_str("item_upto ");
-        print_int(item_upto);
+        print_str("_item_upto ");
+        print_int(_item_upto);
         print_str(" is not equal to ");
         print_int(i);
-        exit(-1);
+        exit(137);
       }
-      item_upto -= i;
-      if (index_sorted_upto >= i)
-        index_sorted_upto -= i;
+      _item_upto -= i;
+      if (_index_sorted_upto >= i)
+        _index_sorted_upto -= i;
       else
-        index_sorted_upto = 0;
-      memmove(static_cast<void*>(&scheduled_item_list[0]), static_cast<void*>(&scheduled_item_list[i]), sizeof(scheduled_item_t) * items_in_scheduled_item_list);
+        _index_sorted_upto = 0;
+      memmove(static_cast<void*>(&_scheduled_item_list[0]), static_cast<void*>(&_scheduled_item_list[i]), sizeof(scheduled_item_t) * _items_in_scheduled_item_list);
     }
   }
 }
@@ -250,11 +276,11 @@ static scheduled_item_t saved_schedule_list[MAX_SCHEDULED_ITEMS - 1];
 void save_schedule_list_state()
 {
   saved_current_tick = current_tick();
-  saved_items_in_schedule_list = items_in_scheduled_item_list;
-  saved_item_upto = item_upto;
-  saved_index_sorted_upto = index_sorted_upto;
-  for (unsigned item = 0; item < items_in_scheduled_item_list; item++)
-    saved_schedule_list[item] = scheduled_item_list[item];
+  saved_items_in_schedule_list = _items_in_scheduled_item_list;
+  saved_item_upto = _item_upto;
+  saved_index_sorted_upto = _index_sorted_upto;
+  for (unsigned item = 0; item < _items_in_scheduled_item_list; item++)
+    saved_schedule_list[item] = _scheduled_item_list[item];
   //  saved_items_in_list = items_in_list;
   for (unsigned item = 0; item < items_in_list; item++)
     task_list[item].saved_time_evaluated_upto = task_list[item].time_evaluated_upto;
@@ -264,17 +290,19 @@ void save_schedule_list_state()
 void restore_schedule_list_state()
 {
   set_current_tick(saved_current_tick);
-  items_in_scheduled_item_list = saved_items_in_schedule_list;
-  item_upto = saved_item_upto;
-  index_sorted_upto = saved_index_sorted_upto;
-  for (unsigned item = 0; item < items_in_scheduled_item_list; item++)
-    scheduled_item_list[item] = saved_schedule_list[item];
+  _items_in_scheduled_item_list = saved_items_in_schedule_list;
+  _item_upto = saved_item_upto;
+  _index_sorted_upto = saved_index_sorted_upto;
+  for (unsigned item = 0; item < _items_in_scheduled_item_list; item++)
+    _scheduled_item_list[item] = saved_schedule_list[item];
   // need to reset the tick periodic tasks have been evaluated upto
 
   // task was only tentertively added to task_list
   // removing the task this way doesn't properly deallocate memory
   //  items_in_list = saved_items_in_list;
-  items_in_list--;
+  
+  //items_in_list--;
+
   for (unsigned item = 0; item < items_in_list; item++)
     task_list[item].time_evaluated_upto = task_list[item].saved_time_evaluated_upto;
 }
@@ -336,24 +364,24 @@ acceptance_codes off_line_scheduler(task_t *task)
     tick anticipated_completion_of_last_task = 0;
 
     // for all scheduled items from the current item we are upto
-    for (int item = item_upto; item < items_in_scheduled_item_list; item++)
+    for (int item = _item_upto; item < _items_in_scheduled_item_list; item++)
     {
       tick anticipated_start_tick, bar_start, bar_end;
 
-      if (scheduled_item_list[item]->task->task_name == task->task_name)
+      if (_scheduled_item_list[item]->task->task_name == task->task_name)
       {
         found_task = true;
       }
 
       // work out where we expect the item will begin
-      anticipated_start_tick = scheduled_item_list[item]->start_not_before;
+      anticipated_start_tick = _scheduled_item_list[item]->start_not_before;
       if (anticipated_start_tick < anticipated_completion_of_last_task)
       {
         anticipated_start_tick = anticipated_completion_of_last_task;
       }
       anticipated_completion_of_last_task = anticipated_start_tick
-                                              + scheduled_item_list[item]->task->exec_bound;
-      if (anticipated_completion_of_last_task > scheduled_item_list[item]->complete_not_after)
+                                              + _scheduled_item_list[item]->task->exec_bound;
+      if (anticipated_completion_of_last_task > _scheduled_item_list[item]->complete_not_after)
       {
         // put things back the way they were before
         restore_schedule_list_state();
@@ -361,8 +389,8 @@ acceptance_codes off_line_scheduler(task_t *task)
       }
     }
 
-    item_upto = items_in_scheduled_item_list - 1;
-    current_tick = scheduled_item_list[items_in_scheduled_item_list - 1]->complete_not_after;
+    _item_upto = _items_in_scheduled_item_list - 1;
+    current_tick = _scheduled_item_list[_items_in_scheduled_item_list - 1]->complete_not_after;
   }
 
   restore_schedule_list_state();

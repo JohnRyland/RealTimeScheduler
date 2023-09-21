@@ -10,8 +10,20 @@
 
 // Because i'm lazy I thought it easiest to use a constant length array
 // for my schedule_list instead of using a linked list or other data struct
-unsigned items_in_list = 0;
-task_t task_list[MAX_TASKS - 1];
+static
+unsigned _items_in_list = 0;
+static
+task_t _task_list[MAX_TASKS - 1];
+
+unsigned get_items_in_list()
+{
+  return _items_in_list;
+}
+
+task_t* get_task_list()
+{
+  return _task_list;
+}
 
 bool add_task_to_schedule(void (*func_ptr)(), id_t task_name, id_t wait_for,
 			     tick_t start_not_before, ticks_t exec_bound,
@@ -50,7 +62,7 @@ bool add_task_to_schedule(void (*func_ptr)(), id_t task_name, id_t wait_for,
   new_item->x_pos = x_pos;
   new_item->y_pos = y_pos;
 
-  items_in_list++;
+  _items_in_list++;
   return true;
 }
 

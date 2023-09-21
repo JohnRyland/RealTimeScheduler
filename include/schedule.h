@@ -26,10 +26,20 @@ typedef struct
 
 #define MAX_SCHEDULED_ITEMS    50
 
-extern unsigned items_in_scheduled_item_list;
-extern unsigned item_upto;
-extern unsigned index_sorted_upto;
-extern scheduled_item_t scheduled_item_list[MAX_SCHEDULED_ITEMS - 1];
+//extern unsigned items_in_scheduled_item_list;
+//extern unsigned item_upto;
+//extern unsigned index_sorted_upto;
+//extern scheduled_item_t scheduled_item_list[MAX_SCHEDULED_ITEMS - 1];
+
+unsigned get_items_in_scheduled_item_list();
+unsigned& get_item_upto();
+unsigned get_index_sorted_upto();
+scheduled_item_t* get_scheduled_item_list();
+
+#define items_in_scheduled_item_list  get_items_in_scheduled_item_list()
+#define item_upto                     get_item_upto()
+#define index_sorted_upto             get_index_sorted_upto()
+#define scheduled_item_list           get_scheduled_item_list()
 
 // return codes for various acceptance tests failures
 enum acceptance_codes

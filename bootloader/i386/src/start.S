@@ -167,6 +167,11 @@ main16:
   # Clear interrupt flag
   cli
 
+  # Notify BIOS of our intended mode (32/64 bit mode)
+  movw   $0xEC00,%ax
+  movb   $1,%bl      #  1 for 32-bit, 2 for 64-bit, 3 for mixed
+  int    $0x15
+
   # Enable A20 Gate
   movw   $0x2401,%ax
   int    $0x15
@@ -216,9 +221,9 @@ main16:
   movl   %eax,(line_no)
   movl   $halt_msg,%esi
   call   print32
- halt:
+ halt32:
   hlt
-  jmp    halt
+  jmp    halt32
 
 # Prints null terminated string %si direct to VGA memory
 # First byte pointed to is the text attribute byte to use
@@ -295,6 +300,31 @@ print32:
   movl   $0x01008000,%eax  # (Second 2 MiB)
   movl   %eax,%esp
 
+  # Load Interrupt Descriptor Table
+  lidt   idt32ptr
+  
+  # Remap the IRQs
+  movb   $0x11,%al
+	outb   %al,$0x20  # starts the initialization sequence (in cascade mode)
+	outb   %al,$0xA0
+  movb   $0x20,%al
+	outb   %al,$0x21
+  movb   $0x28,%al
+	outb   %al,$0xA1  # 0x01C0
+  movb   $0x04,%al
+	outb   %al,$0x21  # ICW3: tell Master PIC that there is a slave PIC at IRQ2 (0000 0100)
+  movb   $0x02,%al
+	outb   %al,$0xA1  # ICW3: tell Slave PIC its cascade identity (0000 0010)
+  movb   $0x01,%al
+	outb   %al,$0x21  # ICW4: have the PICs use 8086 mode (and not 8080 mode)
+	outb   %al,$0xA1
+
+  # Unmask the IRQs
+  movb   $0xfc,%al  # unmask the timer and keyboard interrupts
+	outb   %al,$0x21  # ICW4: have the PICs use 8086 mode (and not 8080 mode)
+  movb   $0xff,%al
+	outb   %al,$0xA1
+
   jmp    _start
 
 .globl _start
@@ -312,7 +342,117 @@ _start:
 # Space here for any asm code needed for early start
 #
 
+.org 0x8020
+.equ cpu_fault,0x8020
+  pushal
+  cld
+  movl   $0xb8000,%edi    # text video memory address
+  mov    $0x0A,%ah
+  mov    $'X',%al
+  stosw
+  popal
+  iret
+
+# .globl interrupt_service_routine
+.org 0x8040
+.equ timer_func,0x8040
+# _isr_func:
+# interrupt_service_routine:
+  pushal
+  cld
+
+  call   get_isr
+  cmpb   $0,%al
+  je     fini      # See if it was spurious
+
+  pushl  %eax      # pass the ISR as first param
+  call   _interrupt_handler
+  popl   %eax
+
+ eoi:
+  movb   $0x20,%al
+  outb   %al,$0x20  # Send EOI (End-of-interrupt)
+ fini:
+  popal
+  iret
+
+get_isr:
+  xor    %eax,%eax
+  movb   $0x0b,%al
+  outb   %al,$0x20
+  inb    $0x20     # Get ISR (In-Service-Register)
+  ret
+
+.org 0x8062
+.equ keyboard_func,0x8062
+  pushal
+  cld
+  
+  movl   $0xb8000,%edi    # text video memory address
+  movw   (%edi),%ax
+  mov    $0x0A,%ah
+  cmp    $'K',%al
+  jne    over1
+  mov    $'X',%al
+  jmp    over2
+ over1:
+  mov    $'K',%al
+ over2:
+  stosw
+
+  call   get_isr
+  cmpb   $0,%al
+  je     fini      # See if it was spurious
+  jmp    eoi
+
+
 # Our own magic value for checking the second stage loaded properly
 .org 0x8100
   .word 0x55AA
+
+
+.org 0x8110
+.equ idt32ptr,0x8110
+  .word 8*34-1
+  .long idt
+
+
+.org 0x8120
+.equ idt,0x8120
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
+  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000  
+  .word timer_func, 0x0008, 0b1110111000000000, 0x0000
+  .word keyboard_func, 0x0008, 0b1110111000000000, 0x0000
+  # .word 0x0000, 0b1110111000000000, 0x0008, isr_func
+
 

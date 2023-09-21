@@ -9,25 +9,17 @@
 #include "runtime.h"
 #include "constants.h"
 #include "x86.h"
-
-
-#define USER_TIMER_INT 0x08  // Could use INT 0x1C or INT 0x70 instead with a few modifications
-
-
-#define interrupt
-#define NULL nullptr
-
+#include "helpers.h"
 
 // Variables
 static volatile tick_t current_tick_;   // number of ticks since timer was enabled
-static void interrupt (*old_timer)(...);
 static volatile unsigned int timer_speed = 0x0000;
 static bool timer_not_installed_blocking = true;
 static tick_t preempt_at_tick = 0;
-static isr_routine_t user_preempt_routine = NULL;
+static preemptor_t user_preempt_routine = nullptr;
+static void* user_preemptor_data = nullptr;
 static bool block_preemptor = false;
 static bool installed_timer_interrupt_in_service = false;
-
 
 // Current text position
 static int curX;
@@ -59,12 +51,38 @@ int getch()
 {
   while (!kbhit())
     /* wait */;
-  return inportb(PPI_DATA); // read the key that is pressed
+  unsigned int ch = (unsigned char)inportb(PPI_DATA); // read the key that is pressed
+
+  // Rough keymap
+  static const char keymap[] = " \0331234567890-=\b\tqwertyuiop[]\r asdfghjkl;'~ \nzxcvbnm,./ **               789-456+1230 ";
+
+  bool press = ch <= 127;
+  int mapped = (press) ? ch : (ch - 128);
+  if (mapped < sizeof(keymap))
+    mapped = keymap[mapped];
+
+  /*
+  print_str(" *** Key: ");
+  print_int(ch);
+  print_str(" mapped to: ");
+  putch(mapped);
+  if (press)
+    print_str(" pressed *** ");
+  else
+    print_str(" released *** ");
+  */
+
+  if (press)
+    return mapped;
+
+  return -1;
 }
 
 void putch(char ch)
 {
   curX++;
+  curY = curY % 51;
+  curX = curX % 81;
   if (ch == '\n')
     curX = 0, curY++;
   else
@@ -90,12 +108,6 @@ void puts2(const char* str)
   putch('\n');
 }
 
-
-void init_timer_driver()
-{
-  // TODO
-}
-
 // sets the speed at which timer interupts are made
 static
 void set_timer_speed(unsigned int rate)
@@ -109,51 +121,62 @@ static
 void preemptor()
 {
   if ((preempt_at_tick == 0) ||
-	 (user_preempt_routine == NULL) || (block_preemptor == true))
+	 (user_preempt_routine == nullptr) || (block_preemptor == true))
     return;
 
   if (current_tick_ >= preempt_at_tick)
   {
     block_preemptor = true;
     // run the user function
-    user_preempt_routine();
+    user_preempt_routine(user_preemptor_data);
     // uninstall it when done
     preempt_at_tick = 0;
-    user_preempt_routine = NULL;
+    user_preempt_routine = nullptr;
     block_preemptor = false;
   }
 }
 
 static
-void interrupt run_timer_isr(...)
+void run_timer_isr(...)
 {
   if (installed_timer_interrupt_in_service == true)
     return;
   installed_timer_interrupt_in_service = true;
   current_tick_++;
   preemptor();
-  old_timer();
   installed_timer_interrupt_in_service = false;
 }
 
+extern "C"
+void interrupt_handler(int interruptNumberOrMask)
+{
+  run_timer_isr();
+}
 
-// Implementation
+extern "C"
+void _interrupt_handler(int interruptNumberOrMask)
+{
+  run_timer_isr();
+}
 
 // installs a user function that will get called at the given tick
-bool install_timer_isr(tick_t event_time, void (*user_func)(...))
+static
+bool install_timer_isr(tick_t event_time, preemptor_t user_func, void* user_data)
 {
   // if it's unsafe to install a user_func or one is already installed
   // then return false
-  if ((user_preempt_routine != NULL) || (block_preemptor == true))
+  if ((user_func == nullptr) || (user_preempt_routine != nullptr) || (block_preemptor == true))
     return false;
   block_preemptor = true;
   preempt_at_tick = event_time;
   user_preempt_routine = user_func;
+  user_preemptor_data = user_data;
   block_preemptor = false;
   return true;
 }
 
 // uninstalls an installed user function
+static
 bool uninstall_timer_isr()
 {
   // if it's unsafe to uninstall a user_func then return false
@@ -161,7 +184,7 @@ bool uninstall_timer_isr()
     return false;
   block_preemptor = true;
   preempt_at_tick = 0;
-  user_preempt_routine = NULL;
+  user_preempt_routine = nullptr;
   block_preemptor = false;
   return true;
 }
@@ -169,10 +192,11 @@ bool uninstall_timer_isr()
 // starts timer so that current_tick will automatically update
 void enable_timer()
 {
+  //puts2(" -- enable -- ");
   disable();
-  old_timer = getvect(USER_TIMER_INT);
-  setvect(USER_TIMER_INT, run_timer_isr);
-  timer_speed = 0x0400;
+  //getvect(USER_TIMER_INT);
+  //setvect(USER_TIMER_INT, run_timer_isr);
+  timer_speed = 0x4000;
   set_timer_speed(timer_speed);    // approx 1000Hz
   current_tick_ = 0;
   enable();
@@ -182,27 +206,29 @@ void enable_timer()
 // stops timer
 void disable_timer()
 {
+  //puts2(" -- disable -- ");
   timer_not_installed_blocking = true;
   disable();
   timer_speed = 0x0000;
   set_timer_speed(timer_speed);    // default 18.2Hz
-  setvect(USER_TIMER_INT, old_timer);
   enable();
 }
 
 // suspends timer so current_tick can be temporarily made to stop updating
 void suspend_timer()
 {
+  //puts2(" -- suspend -- ");
   disable_timer();
 }
 
 // resumes timer so current_tick resumes updating from where it was suspended
 void resume_timer()
 {
+  //puts2(" -- resume -- ");
   disable();
-  old_timer = getvect(USER_TIMER_INT);
-  setvect(USER_TIMER_INT, run_timer_isr);
-  timer_speed = 0x0400;
+  //getvect(USER_TIMER_INT);
+  //setvect(USER_TIMER_INT, run_timer_isr);
+  // timer_speed = 0x0400;
   set_timer_speed(timer_speed);
   enable();
   timer_not_installed_blocking = false;
@@ -211,6 +237,7 @@ void resume_timer()
 // speeds up timer so current_tick updates faster
 void speed_up_timer()
 {
+  //puts2(" -- speedup -- ");
   disable();
   timer_speed = timer_speed * 2;
   set_timer_speed(timer_speed);
@@ -220,6 +247,7 @@ void speed_up_timer()
 // slows timer so current_tick updating more slowly
 void slow_down_timer()
 {
+  //puts2(" -- slowdown -- ");
   disable();
   if (timer_speed == 0)
     timer_speed = -1;
@@ -227,6 +255,8 @@ void slow_down_timer()
   set_timer_speed(timer_speed);
   enable();
 }
+
+extern void draw_tasks();
 
 // delay() causes the computer to idle for the given number of ticks.
 // It works by the fact that timer updates current_tick.
@@ -240,7 +270,7 @@ void delay(ticks_t number_of_ticks, ticks_t deadline)
   if (timer_not_installed_blocking == true)
   {
     puts2("error: cannot call delay unless timer is enabled\n");
-    exit(0);
+    exit(130);
   }
 
   tick_t finish_at = current_tick_ + number_of_ticks;
@@ -248,7 +278,7 @@ void delay(ticks_t number_of_ticks, ticks_t deadline)
   if (current_tick_ > finish_at)
   {
     puts2("error: overflow condition in delay\n");
-    exit(0);
+    exit(131);
   }
 
   while (current_tick_ < finish_at)
@@ -258,10 +288,8 @@ void delay(ticks_t number_of_ticks, ticks_t deadline)
     while (current_tick_ < next_tick)
       /* do nothing */ ;
 
-    
     // update the bar view of the tasks every tick
-    //draw_tasks();
-
+    draw_tasks();
   }
 }
 
@@ -274,22 +302,33 @@ void set_current_tick(tick_t tick)
 {
   current_tick_ = tick;
 }
-
-/*
-struct timer_driver_t
+  
+static
+timer_driver_t baremetal_timer =
 {
-  const char* name;
-  bool (*install_preemptor)(tick_t event_time, preemptor_t user_func, void* user_data);
-  bool (*uninstall_preemptor)();
-  void (*enable)();
-  void (*disable)();
-  void (*suspend)();
-  void (*resume)();
-  void (*speed_up)();
-  void (*slow_down)();
-  //void (*set_speed)(unsigned int rate);
+  "baremetal_timer",
+  install_timer_isr,
+  uninstall_timer_isr,
+  enable_timer,
+  disable_timer,
+  suspend_timer,
+  resume_timer,
+  speed_up_timer,
+  slow_down_timer
 };
-*/
 
-timer_driver_t timer;
+timer_driver_t& get_timer_ref() { return baremetal_timer; }
+
+void init_timer_driver()
+{
+//  outportb(0x21,0xfe); // master - mask all but timer
+
+  //outportb(PIC_MASTER_DATA, 0xfe); // master - mask all but timer
+  //outportb(PIC_SLAVE_DATA, 0xff); // slave  - mask all
+  enable(); // asm("sti");
+
+  //puts2("");
+  //puts2("init_timer_driver");
+  //timer = baremetal_timer;
+}
 

@@ -46,8 +46,14 @@ struct task_t
 
 
 #define MAX_TASKS             100
-extern unsigned items_in_list;
-extern task_t task_list[MAX_TASKS - 1];
+//extern unsigned items_in_list;
+//extern task_t task_list[MAX_TASKS - 1];
+
+
+unsigned get_items_in_list();
+task_t* get_task_list();
+#define items_in_list   get_items_in_list()
+#define task_list       get_task_list()
 
 
 bool add_task_to_schedule(task_entry_t func_ptr,
