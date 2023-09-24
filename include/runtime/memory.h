@@ -15,4 +15,6 @@ extern "C"
   void* memmove(void* dst, const void* src, size_t len);
 
   void* memcpy(void* dst, const void* src, size_t len);
+
+  int memcmp(const void* dst, const void* src, size_t len);
 }

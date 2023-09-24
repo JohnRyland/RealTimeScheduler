@@ -22,8 +22,10 @@ static bool block_preemptor = false;
 static bool installed_timer_interrupt_in_service = false;
 
 // Current text position
-static int curX;
-static int curY;
+static
+int curX;
+static
+int curY;
 
 unsigned random(unsigned)
 {
@@ -147,16 +149,47 @@ void run_timer_isr(...)
   installed_timer_interrupt_in_service = false;
 }
 
-extern "C"
-void interrupt_handler(int interruptNumberOrMask)
+static
+void keyboard_handler()
 {
-  run_timer_isr();
+  ((char*)VGA_TEXT_BASE)[0] = ((char*)VGA_TEXT_BASE)[0] == '^'  ? 'v'  : '^';
+  ((char*)VGA_TEXT_BASE)[1] = ((char*)VGA_TEXT_BASE)[1] == 0x0B ? 0xB0 : 0x0B;
 }
 
 extern "C"
-void _interrupt_handler(int interruptNumberOrMask)
+void interrupt_handler(uint32_t interruptNumberOrMask)
 {
-  run_timer_isr();
+  if (interruptNumberOrMask < 0x20)
+  {
+    puts2(" ** CPU fault ** ");
+    print_int(interruptNumberOrMask);
+    while (true)
+     ;
+    exit(-interruptNumberOrMask);
+  }
+
+  outportb(0x20, 0x0b);
+  if (!inportb(0x20))  // get the in-service register
+  {
+    puts2(" **SPURIOUS** ");
+    return;  // It was a spurious interrupt, ignore
+  }
+
+  switch (interruptNumberOrMask)
+  {
+    case 32: run_timer_isr(); break;
+    case 33: keyboard_handler(); break;
+    default:
+      puts2(" **OTHER** ");
+  }
+
+  outportb(0x20, 0x20); // Send EOI (End-of-interrupt)
+}
+
+extern "C"
+void _interrupt_handler(uint32_t interruptNumberOrMask)
+{
+  interrupt_handler(interruptNumberOrMask);
 }
 
 // installs a user function that will get called at the given tick
@@ -196,21 +229,20 @@ void enable_timer()
   disable();
   //getvect(USER_TIMER_INT);
   //setvect(USER_TIMER_INT, run_timer_isr);
-  timer_speed = 0x4000;
+  //timer_speed = 0x4000;
   set_timer_speed(timer_speed);    // approx 1000Hz
   current_tick_ = 0;
-  enable();
   timer_not_installed_blocking = false;
+  enable();
 }
 
 // stops timer
 void disable_timer()
 {
   //puts2(" -- disable -- ");
-  timer_not_installed_blocking = true;
   disable();
-  timer_speed = 0x0000;
-  set_timer_speed(timer_speed);    // default 18.2Hz
+  timer_not_installed_blocking = true;
+  set_timer_speed(0x0000);    // default 18.2Hz
   enable();
 }
 
@@ -321,14 +353,33 @@ timer_driver_t& get_timer_ref() { return baremetal_timer; }
 
 void init_timer_driver()
 {
+  // initialize variables
+  current_tick_ = 0;   // number of ticks since timer was enabled
+  timer_speed = 0x1000;
+  timer_not_installed_blocking = true;
+  preempt_at_tick = 0;
+  user_preempt_routine = nullptr;
+  user_preemptor_data = nullptr;
+  block_preemptor = false;
+  installed_timer_interrupt_in_service = false;
+
 //  outportb(0x21,0xfe); // master - mask all but timer
 
   //outportb(PIC_MASTER_DATA, 0xfe); // master - mask all but timer
   //outportb(PIC_SLAVE_DATA, 0xff); // slave  - mask all
-  enable(); // asm("sti");
+
+//  enable(); // asm("sti");
 
   //puts2("");
   //puts2("init_timer_driver");
   //timer = baremetal_timer;
 }
 
+void start_timer()
+{
+  enable(); // asm("sti");
+}
+
+void initialize_drivers()
+{
+}

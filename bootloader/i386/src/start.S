@@ -8,193 +8,119 @@
 .code16
 
 # The code is loaded by the BIOS at 0x7C00 so make our addresses match up
+# An alternative approach is to "ljmp $0x07C0,offset" where this sets cs.
 .org 0x7C00
 
-# Setup the registers and then jump to main
-.globl start
-start:
-#  cli
-#  movw  %cs,%ax   # Setup segment registers
-#  movw  %ax,%ds
-#  movw  %ax,%es
-#  movw  %ax,%ss
-#  mov bp,7c00h
-#  mov sp,7c00h    # Setup a stack
-#  sti
-  push   %cs
-  pop    %ds
-  movw   $0x03,%ax
-  int    $0x10     # reset the screen mode
-  movw   $0x1112,%ax
-  int    $0x10     # set 80x50 mode
-  jmp    main16
+# Start of the Bootloader
+bootloader_entry:
+  jmp    start
 
-# Text attribute values
-.equ BOLD,   0x0F
-.equ NORMAL, 0x08
-.equ RED,    0x0C
-.equ GREEN,  0x0A
+# Global descriptor table size and pointer
+# .org 0x7C02
+.equ gdt32ptr,0x7C02
+  .word 23    # Size-1
+  .long gdt   # Location
 
-.org 0x7C0F
-.equ crlf,0x7C0F
-  .byte  NORMAL
-  .asciz ""
+# Global descriptor table
+gdt:
+  # .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  # Null Descriptor
+  # .byte 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x9A, 0xCF, 0x00  # Code Descriptor
+  # .byte 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x92, 0xCF, 0x00  # Data Descriptor
+  # .byte 0x68, 0x00, 0x00, 0x00, 0x00, 0x89, 0xCF, 0x00  # TSS Descriptor
 
-.org 0x7C11
-.equ welcome_msg1,0x7C11
-  .byte  BOLD
-  .asciz "MagicCore RTOS v1.0"
+  .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0b00000000, 0b00000000, 0x00  # Null Descriptor
+  .byte 0xFF, 0xFF, 0x00, 0x00, 0x00, 0b10011010, 0b11001111, 0x00  # Code Descriptor
+  .byte 0xFF, 0xFF, 0x00, 0x00, 0x00, 0b10010010, 0b11001111, 0x00  # Data Descriptor
+  .byte 0x68, 0x00, 0x00, 0x00, 0x00, 0b10001001, 0b11001111, 0x00  # TSS Descriptor
 
-.org 0x7C26
-.equ welcome_msg2,0x7C26
-  .byte  NORMAL
-  .asciz "Copyright (C) 2023, John Ryland"
-
-.org 0x7C47
-.equ read_error,0x7C47
-  .byte  RED
-  .asciz "ReadErr"
-
-.org 0x7C51
-.equ read_okay,0x7C51
-  .byte  GREEN
-  .asciz "[X] Read"
-
-.org 0x7C5A+2
-.equ halt_msg,0x7C5A+2
-  .byte  RED
-  .asciz "Panic!"
-
-.org 0x7C65+2
-.equ line_no,0x7C65+2
-  .long 160    # Text position
+  # Description of entry:
+  #       seg limit   base 0-15 16-23     PD S T      GBLA  S  base(24-31)
+  #       |--------|  |--------|-----|    |/\|/--\    |||||--|  |--|
+  # .byte 0xff, 0xff, 0x00, 0x00, 0x00, 0b10011010, 0b11001111, 0x00  # Example Descriptor
+  #
+  #   P - present, D - desc priv lvl / ring, S - 0=sys,1=code/data, T - seg type
+  #   G - 4k granularity, B - seg size 0=16bit,1=32bit, L - 64bit code, A - system can use this bit
+  #   S - seg limit bits 16-19
 
 # This is the logical-block-address descriptor to load 2nd stage
-.org 0x7C69+2
-.equ lba_data,0x7C69+2
-  .byte 0x10, 0x00  # packet size
-  .byte 0x40, 0x00  # sectors to read
-  .long 0x00007C00  # load address / destination
-  .long 0x00000000  # start sector
+lba_data:
+  # Disk Address Packet (DAP)
+  .byte 0x10, 0x00      # Size of DAP, reserved
+  .word 0x007F          # Number of sectors to read (seems like a limitation of a max of 127 or 128 depending on the BIOS)
+  .word 0x7E00, 0x0000  # Destination offset and segment (0x7C00 + 512bytes, BIOS already loads 1st sector for us)
+  .long 0x0001, 0x0000  # LBA sector on disk to start reading from (64bit value, we start at 2nd sector as BIOS loaded the 1st one)
 
-.org 0x7C75+2
-.equ gdt,0x7C75+2
-  .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0b00000000, 0b00000000, 0x00  # Null Descriptor
-  .byte 0xff, 0xff, 0x00, 0x00, 0x00, 0b10011010, 0b11001111, 0x00  # Code Descriptor
-  .byte 0xff, 0xff, 0x00, 0x00, 0x00, 0b10010010, 0b11001111, 0x00  # Data Descriptor
+welcome_msg1:
+  .asciz "MagicCore RTOS v1.0"
 
-.org 0x7C75+30
-.equ gdt32ptr,0x7C75+30
-  .word 23
-  .long gdt
+welcome_msg2:
+  .asciz "Copyright (C) 2023, John Ryland"
 
-.org 0x7C99
-.equ a20_okay_msg,0x7C99
-  .byte GREEN
-  .asciz "[X] A20"
+.globl start
+start:
+  # Disable Interrupts
+  cli
 
-.org 0x7C99+10
-.equ gdt_okay_msg,0x7C99+10
-  .byte GREEN
-  .asciz "[X] GDT"
+  # Setup Segment Registers (using cs)
+  movw   %cs,%ax      # avoid "push %cs ; pop %ax" because we don't assume the stack is setup
+  movw   %ax,%ds
+  movw   %ax,%ss
+  movw   $0xb800,%ax  # text video memory address
+  movw   %ax,%es
 
-.org 0x7C99+20
-.equ pm_okay_msg, 0x7C99+20
-  .byte GREEN
-  .asciz "[X] 32-bit"
+  # Setup Temporary Stack
+  mov    $0x7C00,%bp
+  mov    $0x7C00,%sp
 
-.org 0x7CB9
-.equ pagemap_okay_msg, 0x7CB9
-  .byte GREEN
-  .asciz "[X] PageMap"
+  # Setup and clear the screen
+  movw   $0x03,%ax
+  int    $0x10         # set screen to VGA text mode 03h
 
-.org 0x7CB9+14
-.equ cr3_okay_msg, 0x7CB9+14
-  .byte GREEN
-  .asciz "[X] CR3"
-
-# Prints null terminated string %si direct to VGA memory
-# First byte pointed to is the text attribute byte to use
-print16:
-  push   $0xb800  # text video memory address
-  pop    %es
-  movw   (line_no),%di
-  lodsb
-  mov    %al,%ah
- print_loop:
-  lodsb
-  stosw
-  cmp    $0,%al
-  jne    print_loop
-  addw   $160,(line_no)  # move to the next line
-  ret
-
-panic16:
-  movw   $0,(line_no)    # show at top of screen
-  call   print16
- halt16:
-  hlt
-  jmp    halt16
-
-# Main entry where the program runs from
-main16:
-  # Print welcome/version info
-  movw   $welcome_msg1,%si
-  call   print16
-  movw   $welcome_msg2,%si
+  # Print Welcome/Version Info
+  movw   $324,%di
+  mov    $0x0A,%ah
+  movl   $welcome_msg1,%esi
   call   print16
 
-  # Read the second stage boot loader after the master boot record
-  movw   $lba_data,%si
+  # Read the kernel (or second stage bootloader) directly after the MBR (master boot record)
+  movl   $lba_data,%esi
   movb   $0x42,%ah
-  int    $0x13
-
-  movw   $read_error,%si
+  int    $0x13         # DL is the drive number, it is passed in at start
   jc     panic16
 
+  # Verify the code loaded as expected
   movw   (0x7DFE),%ax
   cmpw   $0xAA55,%ax  # testing the signature
   jne    panic16
 
-  movw   (0x8100),%ax
+  # Verify the code loaded as expected
+  movw   (0x81FE),%ax
   cmpw   $0x55AA,%ax  # testing the signature
   jne    panic16
 
-  movw   $640,(line_no)
-  movw   $read_okay,%si
-  call   print16
-
-  # Clear interrupt flag
-  cli
-
-  # Notify BIOS of our intended mode (32/64 bit mode)
-  movw   $0xEC00,%ax
-  movb   $1,%bl      #  1 for 32-bit, 2 for 64-bit, 3 for mixed
-  int    $0x15
-
-  # Enable A20 Gate
+  # Enable A20 Gate (needed if plan to use >1MB of RAM)
   movw   $0x2401,%ax
   int    $0x15
-  
-  movw   $a20_okay_msg,%si
+
+  # Show Copyright information
+  movw   $644,%di
+  mov    $0x0F,%ah
+  movl   $welcome_msg2,%esi
   call   print16
 
   # Load Global Descriptor Table
-  lgdt   gdt32ptr
+  lgdtl   gdt32ptr
 
-  movw   $gdt_okay_msg,%si
-  call   print16
+  # Setup screen to double line text mode
+  movw   $0x1112,%ax
+  int    $0x10     # Set 80x50 mode (8x8 font)
 
-  # Setup 32bit mode
-  # Load Control Register CR0
-  # Enable Protected Mode (Bit0 in CR0)
-  # Store Control Register CR0
+  # Enable 32-bit Protected Mode (set bit 0 in CR0)
   movl   %cr0,%eax
   orl    $(1<<0),%eax
   movl   %eax,%cr0
 
-  # Setup all Segment Registers
-  # and reload Code Segment, Instruction Pointer
+  # Setup Segment Registers
   xorl   %eax,%eax
   movl   %eax,%fs
   movl   %eax,%gs
@@ -202,108 +128,91 @@ main16:
   movl   %eax,%ds
   movl   %eax,%es
   movl   %eax,%ss
-  ljmp   $0x0008,$(enter_protected_mode)  # Sets %cs to 0x08 and switches to 32-bit mode
+
+  # Reload Code Segment and Instruction Pointer (switches to 32-bit mode)
+  ljmpl   $0x0008,$enter_protected_mode
+
+print16:
+  lodsb
+  stosw
+  cmp    $0,%al
+  jne    print16
+  ret
+
+halt_msg:
+  .asciz "Panic!"
+
+panic16:
+  xorw   %di,%di
+  movl   $halt_msg,%esi
+  mov    $0x0C,%ah
+  call   print16
+  # fall-through to halt16
+
+halt16:
+  cli
+  hlt
+  jmp    halt16
 
 # Code switches to 32-bit code here
 .code32
-.org 0x7D68
-.equ enter_protected_mode,0x7D68
-
-  movl   $pm_okay_msg,%esi
-  call   print32
-
-  # Jump to the code in the 2nd disk sector
-  ljmp   $0x0008,$(enter_second_stage)
-
-  # Panic and stop running if we fall through
- panic32:
-  xorl   %eax,%eax
-  movl   %eax,(line_no)
-  movl   $halt_msg,%esi
-  call   print32
- halt32:
-  hlt
-  jmp    halt32
-
-# Prints null terminated string %si direct to VGA memory
-# First byte pointed to is the text attribute byte to use
-print32:
-  movl   $0xb8000,%edi    # text video memory address
-  addl   (line_no),%edi
-  lodsb
-  mov    %al,%ah
- print_loop32:
-  lodsb
-  stosw
-  or     %al,%al
-  jne    print_loop32
-  movl   (line_no),%edi
-  addl   $160,%edi
-  movl   %edi,(line_no)   # move to the next line
-  # Note: doesn't handle scrolling the screen so don't print more than 24 lines
-  ret
-
-
-# Magic value the BIOS looks for to tell if it is a valid MBR (last 2 bytes of the 1st disk sector)
-.org 0x7C00 + 510
-  .word 0xAA55
-
-
-.org 0x7E00
-# From below here is the second stage which we load and wasn't loaded by the BIOS
-
-.org 0x7E10
-.equ enter_second_stage,0x7E10
-
-  movl   $second_stage_okay_msg,%esi
-  call   print32
+enter_protected_mode:
+  call   _start32
 
   # load CR3 with PML4
   # Clear the first 0xE000 bytes following 0x1000000.
   movl   $0x01000000,%edi
   movl   %edi,%cr3
-  clrl   %eax
+  xorl   %eax,%eax
   movl   $0x0000e000,%ecx
   rep    stosl
   movl   %cr3,%edi
-  
-  movl   $cr3_okay_msg,%esi
-  call   print32
 
   # Set the initial page tables.
   # Note that we OR with 0x7 here to allow user-space access, except in the
   # first 2 MiB. We also do this with 0x200 to allow forking the page.
 
+  xorl   %eax,%eax
+  incl   %eax
+  shll   $12,%eax                 #  eax = $0x00001000 (4K)
+  movl   $0x01002000,%ebx
+
   # Page-Map Level 4
-  movl   $0x01002000,(%edi)
-  addl   $0x00001000,%edi
+  # movl   $0x01002000,(%edi)     #   [%edi] = $0x01002000
+  # addl   $0x00001000,%edi
+  movl   %ebx,(%edi)
+  addl   %eax,%ebx
+  addl   %eax,%ebx
+  addl   %eax,%edi
+
   # Page-Directory Pointer Table
-  movl   $0x01004000,(%edi)
-  addl   $0x00001000,%edi
+  # movl   $0x01004000,(%edi)     #   [%edi + 4096] = $0x01004000
+  # addl   $0x00001000,%edi
+  movl   %ebx,(%edi)
+  addl   %eax,%ebx
+  addl   %eax,%ebx
+  addl   %eax,%edi
+
   # Page-Directory (no user-space access here)
-  movl   $0x01006000,(%edi)   # (First 2 MiB)
-  movl   $0x01008000,8(%edi)  # (Second 2 MiB)
-  addl   $0x1000,%edi
+  movl   $0x01006000,(%edi)   # (First 2 MiB)    #   [%edi + 8192] = $0x01006000
+  movl   $0x01008000,8(%edi)  # (Second 2 MiB)   #   [%edi + 8192 + 8] = $0x01008000
+  addl   %eax,%edi
   # Page-Table, Memory map the first 4 MiB.
   clrl   %ebx
 
   movl   $1024,%ecx  # 1024 entries each 4kb which is 4MB
  set_entry:
-  mov    %ebx,(%edi)
-  add    $0x1000,%ebx
+  movl   %ebx,(%edi)
+  addl   %eax,%ebx
   add    $8,%edi
   loop   set_entry
-
-  movl   $pagemap_okay_msg,%esi
-  call   print32
 
   movl   $0x01008000,%eax  # (Second 2 MiB)
   movl   %eax,%esp
 
-  # Load Interrupt Descriptor Table
-  lidt   idt32ptr
-  
-  # Remap the IRQs
+  call   _load_idt
+
+  # Remap the IRQs - this could be moved to C code
   movb   $0x11,%al
 	outb   %al,$0x20  # starts the initialization sequence (in cascade mode)
 	outb   %al,$0xA0
@@ -325,134 +234,137 @@ print32:
   movb   $0xff,%al
 	outb   %al,$0xA1
 
-  jmp    _start
-
-.globl _start
-_start:
-  # Entry in to our C code (shouldn't return control)
   call   _start32
-  jmp    panic32
 
-.org 0x8000
-.equ second_stage_okay_msg,0x8000
-  .byte  GREEN
-  .asciz "[X] 2nd Stage"
+# Magic value the BIOS looks for to tell if it is a valid MBR (last 2 bytes of the 1st disk sector)
+.org 0x7C00 + 510
+  .word 0xAA55
 
-#
-# Space here for any asm code needed for early start
-#
-
-.org 0x8020
-.equ cpu_fault,0x8020
-  pushal
-  cld
-  movl   $0xb8000,%edi    # text video memory address
-  mov    $0x0A,%ah
-  mov    $'X',%al
-  stosw
-  popal
-  iret
-
-# .globl interrupt_service_routine
-.org 0x8040
-.equ timer_func,0x8040
-# _isr_func:
-# interrupt_service_routine:
-  pushal
-  cld
-
-  call   get_isr
-  cmpb   $0,%al
-  je     fini      # See if it was spurious
-
-  pushl  %eax      # pass the ISR as first param
-  call   _interrupt_handler
-  popl   %eax
-
- eoi:
-  movb   $0x20,%al
-  outb   %al,$0x20  # Send EOI (End-of-interrupt)
- fini:
-  popal
-  iret
-
-get_isr:
-  xor    %eax,%eax
-  movb   $0x0b,%al
-  outb   %al,$0x20
-  inb    $0x20     # Get ISR (In-Service-Register)
+.globl load_idt
+load_idt:
+.globl _load_idt
+_load_idt:
+  # Load Interrupt Descriptor Table
+  lidt   idt32ptr
   ret
 
-.org 0x8062
-.equ keyboard_func,0x8062
-  pushal
-  cld
-  
-  movl   $0xb8000,%edi    # text video memory address
-  movw   (%edi),%ax
-  mov    $0x0A,%ah
-  cmp    $'K',%al
-  jne    over1
-  mov    $'X',%al
-  jmp    over2
- over1:
-  mov    $'K',%al
- over2:
-  stosw
+# Interrupt descriptor table
+idt:
+  .word isr_entry_1+ 0*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+ 1*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+ 2*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+ 3*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+ 4*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+ 5*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+ 6*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+ 7*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+ 8*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+ 9*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+10*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+11*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+12*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+13*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+14*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+15*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+16*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+17*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+18*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+19*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+20*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+21*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+22*5+0, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+23*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+24*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+25*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+26*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+27*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+28*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+29*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+30*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+31*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+32*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+33*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+34*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+35*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+36*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+37*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+38*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+39*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+40*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+41*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+42*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+43*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+44*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+45*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+46*5+2, 0x0008, 0b1110111011101110, 0x0000
+  .word isr_entry_1+47*5+2, 0x0008, 0b1110111011101110, 0x0000
+idt_end:
 
-  call   get_isr
-  cmpb   $0,%al
-  je     fini      # See if it was spurious
-  jmp    eoi
-
-
-# Our own magic value for checking the second stage loaded properly
-.org 0x8100
-  .word 0x55AA
-
-
-.org 0x8110
-.equ idt32ptr,0x8110
-  .word 8*34-1
+idt32ptr:
+  .word idt_end - idt - 1
   .long idt
 
+.org 0x8102
+.equ isr_entry_1,0x8102
+# isr_entry_1:
+  .byte 0x60,0x6a,0x00,0xeb,22*5  # pushal ; pushl $INTERRUPT_NUM ; jmp double_jump
+  .byte 0x60,0x6a,0x01,0xeb,21*5
+  .byte 0x60,0x6a,0x02,0xeb,20*5
+  .byte 0x60,0x6a,0x03,0xeb,19*5
+  .byte 0x60,0x6a,0x04,0xeb,18*5
+  .byte 0x60,0x6a,0x05,0xeb,17*5
+  .byte 0x60,0x6a,0x06,0xeb,16*5
+  .byte 0x60,0x6a,0x07,0xeb,15*5
+  .byte 0x60,0x6a,0x08,0xeb,14*5
+  .byte 0x60,0x6a,0x09,0xeb,13*5
+  .byte 0x60,0x6a,0x0a,0xeb,12*5
+  .byte 0x60,0x6a,0x0b,0xeb,11*5
+  .byte 0x60,0x6a,0x0c,0xeb,10*5
+  .byte 0x60,0x6a,0x0d,0xeb, 9*5
+  .byte 0x60,0x6a,0x0e,0xeb, 8*5
+  .byte 0x60,0x6a,0x0f,0xeb, 7*5
+  .byte 0x60,0x6a,0x10,0xeb, 6*5
+  .byte 0x60,0x6a,0x11,0xeb, 5*5
+  .byte 0x60,0x6a,0x12,0xeb, 4*5
+  .byte 0x60,0x6a,0x13,0xeb, 3*5
+  .byte 0x60,0x6a,0x14,0xeb, 2*5
+  .byte 0x60,0x6a,0x15,0xeb, 1*5
+  .byte 0x60,0x6a,0x16,0xeb, 0*5
+double_jump:
+  jmp    generic_isr
+  .byte 0x60,0x6a,0x17,0xeb,24*5  # pushal ; pushl $INTERRUPT_NUM ; jmp generic_isr
+  .byte 0x60,0x6a,0x18,0xeb,23*5
+  .byte 0x60,0x6a,0x19,0xeb,22*5
+  .byte 0x60,0x6a,0x1a,0xeb,21*5
+  .byte 0x60,0x6a,0x1b,0xeb,20*5
+  .byte 0x60,0x6a,0x1c,0xeb,19*5
+  .byte 0x60,0x6a,0x1d,0xeb,18*5
+  .byte 0x60,0x6a,0x1e,0xeb,17*5
+  .byte 0x60,0x6a,0x1f,0xeb,16*5
+  .byte 0x60,0x6a,0x20,0xeb,15*5
+  .byte 0x60,0x6a,0x21,0xeb,14*5
+  .byte 0x60,0x6a,0x22,0xeb,13*5
+  .byte 0x60,0x6a,0x23,0xeb,12*5
+  .byte 0x60,0x6a,0x24,0xeb,11*5
+  .byte 0x60,0x6a,0x25,0xeb,10*5
+  .byte 0x60,0x6a,0x26,0xeb, 9*5
+  .byte 0x60,0x6a,0x27,0xeb, 8*5
+  .byte 0x60,0x6a,0x28,0xeb, 7*5
+  .byte 0x60,0x6a,0x29,0xeb, 6*5
+  .byte 0x60,0x6a,0x2a,0xeb, 5*5
+  .byte 0x60,0x6a,0x2b,0xeb, 4*5
+  .byte 0x60,0x6a,0x2c,0xeb, 3*5
+  .byte 0x60,0x6a,0x2d,0xeb, 2*5
+  .byte 0x60,0x6a,0x2e,0xeb, 1*5
+  .byte 0x60,0x6a,0x2f,0xeb, 0*5
+generic_isr:
+  cli    # disable interrupts
+  cld
+  call   _interrupt_handler  # Up to the handler check the In-Service-Register and send EOI as required
+  popl   %eax
+  popal
+  iret
 
-.org 0x8120
-.equ idt,0x8120
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000
-  .word cpu_fault, 0x0008, 0b1110111011101110, 0x0000  
-  .word timer_func, 0x0008, 0b1110111000000000, 0x0000
-  .word keyboard_func, 0x0008, 0b1110111000000000, 0x0000
-  # .word 0x0000, 0b1110111000000000, 0x0008, isr_func
-
-
+# Our own magic value for checking the second stage loaded properly
+.org 0x81FE
+  .word 0x55AA

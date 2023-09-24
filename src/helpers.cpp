@@ -9,36 +9,36 @@
 static
 unsigned status_row = 5;
 
+void init_status()
+{
+  status_row = 5;
+}
+
 void print_str(const char* str)
 {
   while (*str)
     putch(*str++);
 }
 
-/*
-static
-void print_number(uint64_t val, uint8_t base)
+template <unsigned BASE>
+static inline
+void print_number(unsigned val)
 {
-  static const char digits[] = "0123456789ABCDEF";
-  char buf[22] = {}; // big enough for 64-bit number in decimal
-  char* ptr = buf + 21;
-  if (base > 16)
-    base = 16;
-  do {
-    *(--ptr) = digits[val % base];
-  } while (val /= base);
-  print_str(ptr);
+  static const uint8_t base = (BASE > 16) ? 16 : BASE;  // clamp it to 16 or less
+  static const char digits[] = "0123456789ABCDEF";      // character map
+  // char buf[22] = {}; // with intializiation like this, it breaks at runtime if build with x86_64-elf-gcc.
+  char buf[22];                     // big enough for 64-bit number in decimal
+  buf[21] = 0;                      // put nul at what will be the end of the string
+  char* ptr = buf + 21;             // point to the destination in the string of the last character of the number
+  do {                              // loop at least once, so if val is zero it will put at least one character which is '0'.
+    *(--ptr) = digits[val % base];  // keep writing out the next number working to the left (to the most significant digits)
+  } while (val /= base);            // until we have processed every decimal digit.
+  print_str(ptr);                   // now print the resulting string from the most significant digit we last wrote.
 }
-*/
 
 void print_int(int val)
 {
-  char buf[22] = {}; // big enough for 64-bit number in decimal
-  int i = 20;
-  do {
-    buf[i--] = '0' + (val % 10);
-  } while (val /= 10);
-  print_str(buf + i + 1);
+  print_number<10>(val);
 }
 
 void status_message(const char *message)
@@ -279,6 +279,12 @@ void test_binary()
 void test_added_on_the_fly()
 {
   delay(99);
+
+  // Delibrally cause a divide by zero to test the fault/expection handling
+  int x = 0;
+  int y = 10 / x;
+  x = y + 10;
+  print_int(x);
 }
 
 void test_adding_task_on_the_fly()

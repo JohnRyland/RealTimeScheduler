@@ -7,6 +7,11 @@
 #include "schedule.h"
 #include "helpers.h"
 
+//#include "driver.h"
+
+extern
+void initialize_drivers();
+
 static
 void repeat_putch(char ch, int repeats)
 {
@@ -38,6 +43,10 @@ void draw_bar_row(unsigned x, unsigned y, char ch1)
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
+
+  initialize_drivers();
+
+
   // draw a title screen with instructions
   clrscr();
   puts2("                                     toy-rtos");
@@ -92,6 +101,11 @@ int main(int /*argc*/, const char* /*argv*/[])
   gotoxy(1, 48); repeat_putch(' ', 19); putch('\xb3');
   draw_bar_row(1, 49, '\xc1');
 
+  init_tasks();
+  init_scheduler();
+  init_status();
+  init_timer_driver();
+
   // this task must be here as it needs to be the first one to run
   status_to_adding_a_task(request_to_add_task(online_scheduler,            0, 0,     0,  20,     0, UPDATE_SCHEDULE_RATE - 1,  "Online Scheduler", 54, 2), "online scheduler");
   // add user tasks to be scheduled
@@ -101,7 +115,7 @@ int main(int /*argc*/, const char* /*argv*/[])
   status_to_adding_a_task(request_to_add_task(test_binary,                 3, 0,     0,  50,     0,                      500,            "Binary", 54, 14), "binary");
   status_to_adding_a_task(request_to_add_task(test_adding_task_on_the_fly, 4, 0, 10000,  50, 10500,                        0, "Exec another task",  2, 26), "on the fly task");
 
-  init_timer_driver();
+  start_timer();
 
   // set the realtime system going
   run_on_line_scheduler();

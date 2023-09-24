@@ -5,12 +5,16 @@
 */
 #pragma once
 
-#define interrupt
-typedef void interrupt (*isr_func_t)(...);
+#include "driver.h"
 
-void outp(int,int);
-void disable();
-void enable();
-isr_func_t getvect(int);
-void setvect(int, isr_func_t);
+typedef void (*func_t)();
 
+struct interrupt_controller_vtable_t
+{
+  void (*setup_tables)();
+  void (*remap_irqs)();
+  void (*set_irq_mask)(uint64_t irq_mask);
+  void (*register_handler)(uint16_t interrupt_number, func_t func);
+  void (*enable)();
+  void (*disable)();
+};

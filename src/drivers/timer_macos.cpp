@@ -11,6 +11,8 @@
 #include "conio.h"
 #include "timer.h"
 
+#if 0
+
 
 // Global variables
 static volatile tick_t current_tick_ = 0;   // number of ticks since timer was enabled
@@ -27,7 +29,6 @@ static dispatch_source_t timer1;
 
 // Externs
 extern void draw_tasks();
-
 
 [[ noreturn ]]
 static void sigtrap(int /*sig*/)
@@ -174,6 +175,7 @@ static void slow_down_timer()
   set_timer_speed();
 }
 
+
 // delay() causes the computer to idle for the given number of ticks.
 // It works by the fact that timer updates current_tick.
 // The function could be re-written as a pre-empt routine, except this
@@ -221,11 +223,13 @@ void delay(ticks_t number_of_ticks, tick_t deadline)
   }
 }
 
+static
 tick_t current_tick()
 {
   return current_tick_;
 }
 
+static
 void set_current_tick(tick_t tick)
 {
   current_tick_ = tick;
@@ -261,3 +265,5 @@ void start_timer()
 {
   enable_timer();
 }
+
+#endif

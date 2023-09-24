@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.makefile-tools",
+        "kleysley.intellij-theme-cpp",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "bierner.markdown-preview-github-styles",
+    ]
+}

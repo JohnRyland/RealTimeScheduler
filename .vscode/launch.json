@@ -1,0 +1,58 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch Make Target",
+            "type": "cppdbg",
+            "MIMode": "gdb",
+            "request": "launch",
+            "stopAtEntry": false,
+            "environment": [],
+            "externalConsole": false,
+            "cwd":           "${config:makeBuildConfig.makeDirectory}",
+            "program":       "${config:makeBuildConfig.makeDirectory}/${config:makeBuildConfig.makeTarget}",
+            "args":        [ "${config:makeBuildConfig.makeTargetArg0}", "${config:makeBuildConfig.makeTargetArg1}" ],
+            "preLaunchTask": "${config:makeBuildTask}",
+            "setupCommands": [
+                {
+                    "description": "pretty-printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name":              "Run makeBuildTask",
+            "type":              "cppdbg",
+            "MIMode":            "lldb",
+            "request":           "launch",
+            "cwd":               "${config:makeBuildConfig.makeDirectory}",
+            "program":           "/usr/bin/printf",
+            "args":              [ "Done!" ],
+            "preLaunchTask":     "${config:makeBuildTask}",
+            "stopAtEntry":       false,
+            "externalConsole":   false,
+            "logging": {
+                "engineLogging": false
+            },
+        },
+        {
+            "name":              "Debug",
+            "request":           "launch",
+            "type":              "cppdbg",
+            "MIMode":            "gdb",
+            "miDebuggerArgs":    "-ex \"set architecture i386:x86-64:intel\" -ex \"target remote localhost:1234\" ",
+            "cwd":               "${workspaceFolder}",
+            "program":           "${workspaceFolder}/bootloader/i386/bin/image.sym",
+            "preLaunchTask":     "${config:makeBuildTask}",
+            "stopAtEntry":       false,
+            "externalConsole":   false,
+            "logging": {
+                "engineLogging": false
+            },
+        }
+    ]
+}

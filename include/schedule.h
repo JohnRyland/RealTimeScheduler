@@ -53,6 +53,8 @@ enum acceptance_codes
   scheduled_item_buffer_too_small = 6
 };
 
+void init_scheduler();
+
 void run_scheduled_item(scheduled_item_t *item);
 
 // compares items using the earliest deadline algorithm

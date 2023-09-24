@@ -4,38 +4,11 @@
   All rights reserved.
 */
 
-#include <stdint.h>
-#include "helpers.h"
-#include "conio.h"
+#include "types.h"
 #include "runtime.h"
 
 extern "C"
 {
-void* memset(void* dst, int val, size_t len)
-{
-  char* dstc = (char*)dst;
-  for (int i = 0; i < len; ++i)
-    dstc[i] = val;
-  return dst;
-}
-
-void* memmove(void* dst, const void* src, size_t len)
-{
-  char* dstc = (char*)dst;
-  char* srcc = (char*)src;
-  if (dst < src)
-    for (int i = 0; i < len; ++i)
-      dstc[i] = srcc[i];
-  else
-    for (int i = len-1; i >= 0; --i)
-      dstc[i] = srcc[i];
-  return dst;
-}
-
-void* memcpy(void* dst, const void* src, size_t len)
-{
-  return memmove(dst, src, len);
-}
 
 [[ noreturn ]]
 void halt()
@@ -47,6 +20,7 @@ void halt()
 [[ noreturn ]]
 void exit(int code)
 {
+  // needs text driver
   gotoxy(0, 0);
   print_str("### exited with error code ");
   print_int(code);
@@ -140,16 +114,9 @@ void check_sorted(uint8_t* base, size_t nel, size_t width, compare_t compar)
 
 void qsort(void* base, size_t nel, size_t width, compare_t compar)
 {
-  if (nel > 1000 || width > 100)
-  {
-    gotoxy(0, 1);
-    print_str(" ###### bad sort input ###### ");
-    exit(129);
-  }
-  //qsort_internal((uint8_t*)base, width, 0, nel-1, compar);
-  heapsort((uint8_t*)base, nel, width, compar);
+  qsort_internal((uint8_t*)base, width, 0, nel-1, compar);
+  //heapsort((uint8_t*)base, nel, width, compar);
   check_sorted((uint8_t*)base, nel, width, compar);
 }
 
 }
-

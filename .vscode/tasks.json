@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+		"tasks": [
+			{
+				"label":   "Makefile Build",
+				"command": "make -j4 -C ${config:makeBuildConfig.makeDirectory} ${config:makeBuildConfig.makeTarget}",
+				"type":    "shell",
+				"group":   "build",
+				"problemMatcher":
+				{
+					"base": "$gcc",
+					"fileLocation": [ "relative", "${config:makeBuildConfig.makeDirectory}" ]
+				}
+			},
+		]
+}

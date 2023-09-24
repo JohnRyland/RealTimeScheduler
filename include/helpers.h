@@ -7,8 +7,6 @@
 
 #include "schedule.h"
 
-typedef int size_t;
-
 extern "C"
 {
 
@@ -31,6 +29,7 @@ void print_int(int val);
 void critical_error(const char *error_message);
 void status_message(const char *message);
 
+void init_status();
 void status_to_adding_a_task(acceptance_codes status, const char *message);
 void test_deterministic();
 void test_exponential();

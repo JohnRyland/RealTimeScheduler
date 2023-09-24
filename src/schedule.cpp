@@ -468,4 +468,10 @@ acceptance_codes request_to_add_task(void (*func_ptr)(), id_t task_name,
   return off_line_scheduler(&task_list[items_in_list - 1]);
 }
 
-
+void init_scheduler()
+{
+  _items_in_scheduled_item_list = 0;
+  _item_upto = 0;
+  _index_sorted_upto = 0;
+  // _scheduled_item_list[MAX_SCHEDULED_ITEMS - 1];
+}

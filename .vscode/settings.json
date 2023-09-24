@@ -1,0 +1,130 @@
+{
+    "files.associations": {
+        "string": "cpp",
+        "string_view": "cpp",
+        "array": "cpp",
+        "charconv": "cpp",
+        "type_traits": "cpp",
+        "limits": "cpp",
+        "ratio": "cpp",
+        "tuple": "cpp",
+        "variant": "cpp",
+        "atomic": "cpp",
+        "bitset": "cpp",
+        "cctype": "cpp",
+        "clocale": "cpp",
+        "cmath": "cpp",
+        "cstdarg": "cpp",
+        "cstddef": "cpp",
+        "cstdint": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "cstring": "cpp",
+        "ctime": "cpp",
+        "cwchar": "cpp",
+        "cwctype": "cpp",
+        "exception": "cpp",
+        "fstream": "cpp",
+        "initializer_list": "cpp",
+        "iomanip": "cpp",
+        "ios": "cpp",
+        "iosfwd": "cpp",
+        "iostream": "cpp",
+        "istream": "cpp",
+        "locale": "cpp",
+        "memory": "cpp",
+        "mutex": "cpp",
+        "new": "cpp",
+        "ostream": "cpp",
+        "stdexcept": "cpp",
+        "streambuf": "cpp",
+        "system_error": "cpp",
+        "typeinfo": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "algorithm": "cpp",
+        "regex": "cpp",
+        "span": "cpp",
+        "hash_map": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp",
+        "optional": "cpp",
+        "sstream": "cpp",
+        "strstream": "cpp",
+        "deque": "cpp",
+        "thread": "cpp",
+        "chrono": "cpp",
+        "compare": "cpp",
+        "list": "cpp",
+        "version": "cpp",
+        "filesystem": "cpp",
+        "queue": "cpp",
+        "stack": "cpp",
+        "cassert": "cpp"
+    },
+
+
+    // CMake settings
+    "cmake.configureOnOpen": false,
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+
+
+    // My custom config
+    "makeBuildConfig" : {
+        "makeDirectory":  "${workspaceRoot}/bootloader/i386",
+        "makeTarget":     "bin/image.bin",
+        "makeTargetArg0": "",
+        "makeTargetArg1": "",
+    },
+
+
+    "makeBuildTask":  "Makefile Build",
+
+    // Debugging
+    "debug.onTaskErrors": "showErrors",
+
+    // Colors
+    "workbench.colorTheme": "Intellij Color Theme",
+    "workbench.colorCustomizations": {
+        "[Intellij Color Theme]": {
+            "editorBracketHighlight.foreground1": "#cea84f",
+            "editorBracketHighlight.foreground2": "#c6c28c",
+            "editorBracketHighlight.foreground3": "#ad79bd",
+            "editorBracketHighlight.foreground4": "#7db0cf",
+            "editorBracketHighlight.foreground5": "#a3be88",
+            "editorBracketHighlight.foreground6": "#abb2c0",
+            "editorBracketHighlight.unexpectedBracket.foreground": "#db6165"
+        }
+    },
+    "editor.tokenColorCustomizations": {
+        "[Intellij Color Theme]": {
+            "textMateRules": [
+                { "scope": [ "token.debug-token" ],            "settings": { "foreground": "#906aab" } },
+                { "scope": [ "string" ],                       "settings": { "foreground": "#bede5c" } },
+                { "scope": [ "keyword.operator" ],             "settings": { "foreground": "#f49828" } },
+                { "scope": [ "keyword.control" ],              "settings": { "foreground": "#f69b25" } },
+                { "scope": [ "keyword.control.directive.include.cpp" ], "settings": { "foreground": "#efbd16" } },
+                { "scope": [ "entity.name.variable" ],         "settings": { "foreground": "#8f62a8" } },
+                { "scope": [ "comment.line" ],                 "settings": { "foreground": "#666c78" } },
+            ],
+        }
+    },
+    "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+
+    // Intellisense like settings
+    "editor.inlayHints.enabled": "offUnlessPressed",  // press Ctrl-Alt to show
+    "C_Cpp.clang_format_style": "Mozilla",
+    "C_Cpp.formatting": "clangFormat",
+    "C_Cpp.clang_format_sortIncludes": false,
+    "clangd.path": "/usr/local/opt/llvm/bin/clangd",
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceRoot}/.vscode",
+        "--fallback-style=Mozilla",
+        "--background-index"
+    ],
+    "C_Cpp.suggestSnippets": true,
+    "workbench.editor.enablePreviewFromQuickOpen": false,
+    "workbench.editor.enablePreview": true,
+
+}

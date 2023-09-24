@@ -5,7 +5,30 @@
 */
 #pragma once
 
-#include <stdint.h>
+#include "driver.h" // <stdint.h>
+#include "interrupts.h" // <stdint.h>
+
+enum class timer_type_t : uint8_t
+{
+  SINGLE_SHOT,
+  PERIODIC,
+};
+
+struct timer_t;
+typedef void (*func_t)();
+
+struct timer_vtable_t
+{
+  bool (*initialize)(driver_t& driver, interrupt_controller_vtable_t& interrupt_controller);
+  bool (*set_speed)(driver_t& driver, uint32_t speed);
+  bool (*enable)(driver_t& driver);
+  uint64_t (*current_tick)(driver_t& driver);
+  uint64_t (*create_timer)(driver_t& driver, timer_type_t type, uint64_t first_tick, uint64_t ticks_between, func_t callback, timer_t& timer);
+  uint64_t (*cancel_timer)(driver_t& driver, timer_t& timer);
+};
+
+
+#if 1
 
 typedef uint32_t tick_t;
 typedef uint32_t ticks_t;
@@ -19,6 +42,7 @@ typedef void (*preemptor_t)(void* user_data);
        ; // do nothing
 */
 
+void start_timer();
 void init_timer_driver();
 
 void delay(ticks_t number_of_ticks, tick_t deadline = 0);
@@ -46,4 +70,4 @@ struct timer_driver_t
 
 timer_driver_t& get_timer_ref();
 
-
+#endif
