@@ -12,10 +12,12 @@
 #        define   VGA_TEXT_BASE       0xB8000
 #        define   VGA_TEXT_SIZE       0x8000
 //   - Text attribute values
+/*
 #        define   BOLD                0x0F
 #        define   NORMAL              0x08
 #        define   RED                 0x0C
 #        define   GREEN               0x0A
+*/
 // - Port addresses
 //   - Programmable Interrupt Controller (8259)
 #        define   PIC_MASTER_COMMAND  0x20

@@ -9,7 +9,8 @@
 #include "runtime.h"
 #include "constants.h"
 #include "x86.h"
-#include "helpers.h"
+#include "kernel/exception_handler.h"
+#include "kernel/debug_logger.h"
 
 // Variables
 static volatile tick_t current_tick_;   // number of ticks since timer was enabled
@@ -20,95 +21,6 @@ static preemptor_t user_preempt_routine = nullptr;
 static void* user_preemptor_data = nullptr;
 static bool block_preemptor = false;
 static bool installed_timer_interrupt_in_service = false;
-
-// Current text position
-static
-int curX;
-static
-int curY;
-
-unsigned random(unsigned)
-{
-  // TODO
-  return 0;
-}
-
-void clrscr()
-{
-  memset((void*)VGA_TEXT_BASE, 0, VGA_TEXT_SIZE);
-}
-
-void gotoxy(unsigned x, unsigned y)
-{
-  curX = x;
-  curY = y;
-}
-
-void textmode(int mode)
-{
-  // do nothing
-}
-
-int getch()
-{
-  while (!kbhit())
-    /* wait */;
-  unsigned int ch = (unsigned char)inportb(PPI_DATA); // read the key that is pressed
-
-  // Rough keymap
-  static const char keymap[] = " \0331234567890-=\b\tqwertyuiop[]\r asdfghjkl;'~ \nzxcvbnm,./ **               789-456+1230 ";
-
-  bool press = ch <= 127;
-  int mapped = (press) ? ch : (ch - 128);
-  if (mapped < sizeof(keymap))
-    mapped = keymap[mapped];
-
-  /*
-  print_str(" *** Key: ");
-  print_int(ch);
-  print_str(" mapped to: ");
-  putch(mapped);
-  if (press)
-    print_str(" pressed *** ");
-  else
-    print_str(" released *** ");
-  */
-
-  if (press)
-    return mapped;
-
-  return -1;
-}
-
-void putch(char ch)
-{
-  curX++;
-  curY = curY % 51;
-  curX = curX % 81;
-  if (ch == '\n')
-    curX = 0, curY++;
-  else
-    ((short*)VGA_TEXT_BASE)[curY*80 + curX - 1] = 0x0700 | (unsigned)((unsigned char)ch);
-}
-
-
-bool kbhit()
-{
-  // check if a key is waiting
-  int status = inportb(PPI_STATUS);
-  if (!(status & 1))    // check output buffer
-    return false;
-  if ((status & 0x20))  // check if PS2 mouse byte
-    return false;
-  return true;
-}
-
-void puts2(const char* str)
-{
-  while (*str)
-    putch(*str++);
-  putch('\n');
-}
 
 // sets the speed at which timer interupts are made
 static
@@ -160,13 +72,7 @@ extern "C"
 void interrupt_handler(uint32_t interruptNumberOrMask)
 {
   if (interruptNumberOrMask < 0x20)
-  {
-    puts2(" ** CPU fault ** ");
-    print_int(interruptNumberOrMask);
-    while (true)
-     ;
-    exit(-interruptNumberOrMask);
-  }
+    k_fault_handler((fault_t)interruptNumberOrMask);
 
   outportb(0x20, 0x0b);
   if (!inportb(0x20))  // get the in-service register
@@ -183,7 +89,9 @@ void interrupt_handler(uint32_t interruptNumberOrMask)
       puts2(" **OTHER** ");
   }
 
-  outportb(0x20, 0x20); // Send EOI (End-of-interrupt)
+  if (interruptNumberOrMask >= 0x28 && interruptNumberOrMask <= 0x2F)
+    outportb(0xA0, 0x20); // Send EOI (End-of-interrupt) to slave PIC
+  outportb(0x20, 0x20); // Send EOI (End-of-interrupt) to master PIC
 }
 
 extern "C"
@@ -296,23 +204,18 @@ extern void draw_tasks();
 // function couldn't be pre-empted because currently only one pre-empt
 // function can be installed at a time.
 // The pre-emptor should be reserved for use by the scheduler only.
-void delay(ticks_t number_of_ticks, ticks_t deadline)
+void delay(ticks_t number_of_ticks, ticks_t /*deadline*/)
 {
   // must not call this if my_timer handler isn't installed
   if (timer_not_installed_blocking == true)
-  {
-    puts2("error: cannot call delay unless timer is enabled\n");
-    exit(130);
-  }
+    k_critical_error(130, "error: cannot call delay unless timer is enabled\n");
 
   tick_t finish_at = current_tick_ + number_of_ticks;
 
   if (current_tick_ > finish_at)
-  {
-    puts2("error: overflow condition in delay\n");
-    exit(131);
-  }
+    k_critical_error(133, "error: overflow condition in delay\n");
 
+  draw_tasks();
   while (current_tick_ < finish_at)
   {
     // wait for next tick
@@ -377,9 +280,10 @@ void init_timer_driver()
 
 void start_timer()
 {
+  gotoxy(0,0);puts2("HereX!");
+
   enable(); // asm("sti");
+
+  gotoxy(0,0);puts2("HereY!");
 }
 
-void initialize_drivers()
-{
-}

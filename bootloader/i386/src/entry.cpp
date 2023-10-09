@@ -4,19 +4,29 @@
   All rights reserved.
 */
 
-#include "conio.h"
+//#include "conio.h"
 #include "constants.h"
-#include "helpers.h"
+#include "kernel/exception_handler.h"
+#include "kernel/debug_logger.h"
+#include "runtime/memory.h"
+#include "runtime/entry.h"
 #include "x86.h"
 
 // Some bogo delay value
-#define  DELAY  5000000
+#define  DELAY  10000000
 
 static int line;
 
-void println(char attrib, const char* str)
+void clrscr_early()
 {
-  volatile char* videoMemory = (char*)0xB8000;
+  mem_set((void*)VGA_TEXT_BASE, 0, VGA_TEXT_SIZE);
+}
+
+void k_log_early(log_level level, const char* str)
+{
+  static const char attrib_for_level[] = { 0x08, 0x07, 0x0F, 0x0A, 0x0E, 0x04, 0x0C };
+  char attrib = attrib_for_level[level % 7];
+  volatile char* videoMemory = (char*)VGA_TEXT_BASE;
   for (int i = 0; *str; i+=2)
   {
     videoMemory[i + line + 0] = *str;
@@ -91,28 +101,19 @@ void setup_interrupts()
 extern "C"
 void _start32()
 {
+  line = 1600; // Display this after the bootloader's text
+  k_log_early(SUCCESS, "[X] Entered C start");
   setup_initial_pagetables();
+  k_log_early(SUCCESS, "[X] Pagetables initialized");
   setup_interrupts();
-
+  k_log_early(SUCCESS, "[X] Interrupts initialized");
   // relocate the stack - we can't really put this in a function as there is no way to ret
   asm volatile ( "mov %0, %%esp" : : "a"(0x01008000) ); // (Second 2 MiB)
-
-  ((char*)VGA_TEXT_BASE)[2] = '.'; // debug - outputs something without using pointers to data
-  line = 1760; // Display this after the bootloader's text
-  println(GREEN, "[X] Entered C start");
-  gotoxy(0, 12);
-  puts2("[X] Conio");
-  udelay(DELAY);
-  clrscr();
-  line = 0;
-  println(NORMAL, "Starting...");
-  udelay(DELAY);
-
+  k_log_early(SUCCESS, "[X] Stack initialized");  
   // Start the scheduler
   int ret = main(0, nullptr);
-
-  // Never return
-  exit(ret);
+  // Main returned
+  k_critical_error(ret, "main exited");
 }
 
 extern "C"

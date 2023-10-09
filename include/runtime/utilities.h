@@ -8,10 +8,8 @@
 
 #include "types.h"
 
-extern "C"
-{
-  void qsort(void *base, size_t nel, size_t width, int (*compar)(const void *, const void *));
+typedef int (*compare_t)(const void *, const void *);
 
-  [[noreturn]]
-  void exit(int);
-}
+void k_qsort(void *base, size_t nel, size_t width, compare_t compare_func);
+const void *k_bsearch(const void *key, const void *base, size_t nmemb, size_t size, compare_t compare_func);
+unsigned k_random(unsigned x);

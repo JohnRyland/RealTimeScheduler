@@ -53,12 +53,12 @@ void write_cr3(uint32_t val)
 static inline
 void enable()
 {
-  __asm__ __volatile__ ("sti");
+  asm volatile ( "sti" );
 }
 
 static inline
 void disable()
 {
-  __asm__ __volatile__ ("cli");
+  asm volatile ( "cli" );
 }
 
