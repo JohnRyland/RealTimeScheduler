@@ -14,12 +14,6 @@
 #include <sys/ioctl.h>
 #include <sys/termios.h>
 #include <termios.h>
-<<<<<<<< HEAD:src/drivers/posix/text_tty.cpp
-// #include "conio.h"
-
-#include "../../include/driver/text.h"
-========
->>>>>>>> 1799aae760fda88ce3956e8a95bcc9c4abd475c0:src/modules/text_tty.cpp
 
 static
 void initialize(text_display_t*)
