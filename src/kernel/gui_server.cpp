@@ -1,5 +1,7 @@
+
 // John Ryland, 2023
-#pragma once
+
+//#pragma once
 
 
 // Gist:
@@ -39,7 +41,7 @@ struct gui_event
 
 // queue<gui_event> gui_event_queue;
 
-void gui_add_event(gui_event& ev)
+void gui_add_event(gui_event& /*ev*/)
 {
   // gui_event_queue.add(ev);
 }
