@@ -10,7 +10,15 @@ _load_idt:
 
 # Interrupt descriptor table
 idt:
-  .word isr_entry_1+ 0*5+0, 0x0008, 0b1110111011101110, 0x0000
+  #   P = present
+  #   DPL = 2-bit ring level
+  #   GT = gate type ( b0101 = task, b1110 = interrupt, b1111 = trap)
+  #
+  #                                    DPL GT reserved
+  #                                   P||0|--||------|
+  #        offset 0-15      segment       flags       offset 16-31
+  #     |----------------| |-------| |---------------| |-----|
+  .word isr_entry_1+ 0*5+0, 0x0008, 0b1110111000000000, 0x0000
   .word isr_entry_1+ 1*5+0, 0x0008, 0b1110111011101110, 0x0000
   .word isr_entry_1+ 2*5+0, 0x0008, 0b1110111011101110, 0x0000
   .word isr_entry_1+ 3*5+0, 0x0008, 0b1110111011101110, 0x0000

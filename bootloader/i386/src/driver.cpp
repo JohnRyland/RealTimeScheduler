@@ -59,7 +59,7 @@ int getch()
   static const char keymap[] = " \0331234567890-=\b\tqwertyuiop[]\r asdfghjkl;'~ \nzxcvbnm,./ **               789-456+1230 ";
 
   bool press = ch <= 127;
-  int mapped = (press) ? ch : (ch - 128);
+  unsigned int mapped = (press) ? ch : (ch - 128);
   if (mapped < sizeof(keymap))
     mapped = keymap[mapped];
 
@@ -159,6 +159,8 @@ void keyboard_handler()
 extern "C"
 void interrupt_handler(uint32_t interruptNumberOrMask)
 {
+  // puts2(" XXXXXXX ");
+
   if (interruptNumberOrMask < 0x20)
   {
     puts2(" ** CPU fault ** ");
@@ -183,7 +185,9 @@ void interrupt_handler(uint32_t interruptNumberOrMask)
       puts2(" **OTHER** ");
   }
 
-  outportb(0x20, 0x20); // Send EOI (End-of-interrupt)
+  if (interruptNumberOrMask >= 0x28 && interruptNumberOrMask <= 0x2F)
+    outportb(0xA0, 0x20); // Send EOI (End-of-interrupt) to slave PIC
+  outportb(0x20, 0x20); // Send EOI (End-of-interrupt) to master PIC
 }
 
 extern "C"
@@ -313,6 +317,7 @@ void delay(ticks_t number_of_ticks, ticks_t deadline)
     exit(131);
   }
 
+  draw_tasks();
   while (current_tick_ < finish_at)
   {
     // wait for next tick
@@ -377,7 +382,11 @@ void init_timer_driver()
 
 void start_timer()
 {
+  gotoxy(0,0);puts2("HereX!");
+
   enable(); // asm("sti");
+
+  gotoxy(0,0);puts2("HereY!");
 }
 
 void initialize_drivers()

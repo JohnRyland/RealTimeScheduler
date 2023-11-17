@@ -14,7 +14,7 @@ extern "C"
 void* memset(void* dst, int val, size_t len)
 {
   char* dstc = (char*)dst;
-  for (int i = 0; i < len; ++i)
+  for (size_t i = 0; i < len; ++i)
     dstc[i] = val;
   return dst;
 }
@@ -24,10 +24,10 @@ void* memmove(void* dst, const void* src, size_t len)
   char* dstc = (char*)dst;
   char* srcc = (char*)src;
   if (dst < src)
-    for (int i = 0; i < len; ++i)
+    for (size_t i = 0; i < len; ++i)
       dstc[i] = srcc[i];
   else
-    for (int i = len-1; i >= 0; --i)
+    for (size_t i = len-1; i >= 0; --i)
       dstc[i] = srcc[i];
   return dst;
 }
@@ -59,7 +59,7 @@ typedef int (*compare_t)(const void *, const void *);
 static
 void memswap(uint8_t* left, uint8_t* right, size_t width)
 {
-  for (int i = 0; i < width; ++i)
+  for (size_t i = 0; i < width; ++i)
   {
     uint8_t tmp = left[i];
     left[i] = right[i];
@@ -116,7 +116,7 @@ void qsort_internal(uint8_t *base, size_t width, size_t left, size_t right, comp
     return;
   swap(base, left, (left+right)/2, width);
   int last = left;
-  for (int i = left+1; i <= right; ++i)
+  for (size_t i = left+1; i <= right; ++i)
     if (cmp(base, i, left, width, comp) < 0)
       swap(base, last, i, width);
   swap(base, left, last, width);
@@ -128,7 +128,7 @@ static
 void check_sorted(uint8_t* base, size_t nel, size_t width, compare_t compar)
 {
   if (nel)
-    for (int i = 1; i < nel; ++i)
+    for (size_t i = 1; i < nel; ++i)
       if (!cmp(base, i-1, i, width, compar))
       {
         gotoxy(0, 1);

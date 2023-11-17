@@ -4,10 +4,7 @@
   All rights reserved.
 */
 
-#include <stdint.h>
-#include "helpers.h"
-#include "conio.h"
-#include "runtime.h"
+#include "memory.h"
 
 extern "C"
 {

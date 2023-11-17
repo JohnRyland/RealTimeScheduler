@@ -7,11 +7,11 @@
 #pragma once
 
 #include "types.h"
+#include "utilities.h"
+#include "memory.h"
+#include "conio.h"
 
 extern "C"
 {
-  void qsort(void *base, size_t nel, size_t width, int (*compar)(const void *, const void *));
-
-  [[noreturn]]
-  void exit(int);
+  int main(int argc, const char* argv[]);
 }

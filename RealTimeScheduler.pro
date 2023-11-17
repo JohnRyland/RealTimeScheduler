@@ -17,7 +17,7 @@ else
  OS_DEFINE = _MSDOS
 endif
 
-SOURCES  = $(wildcard src/*.cpp src/drivers/${DRIVER}/*.cpp src/drivers/*.cpp)
+SOURCES  = $(wildcard src/*.cpp src/drivers/${DRIVER}/*.cpp src/drivers/*.cpp bootloader/i386/i386.pro)
 DOCS     = $(wildcard *.md *.txt docs/*)
 INCLUDES = include include/driver include/runtime
 CFLAGS   = -Wall -Wextra -Werror -nostdlib -D$(OS_DEFINE)

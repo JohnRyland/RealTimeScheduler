@@ -38,6 +38,8 @@ void print_number(unsigned val)
 
 void print_int(int val)
 {
+  //print_str("0");
+  //return;
   print_number<10>(val);
 }
 
@@ -59,7 +61,7 @@ void critical_error(const char *error_message)
 
 void status_to_adding_a_task(acceptance_codes status, const char *message)
 {
-  const char *error_msgs[6] = {
+  static const char *error_msgs[6] = {
     "task accepted",
     "exec_bound > period",
     "start + exec_bound > deadline",
@@ -96,16 +98,16 @@ void kill_task(void* user_data)
   task_t* task = reinterpret_cast<task_t*>(user_data);
 
   // Allow up to 3 deadline failures, then quit if keeps happening
-  if (task->deadline_failures < 3)
-  {
-    ++task->deadline_failures;
-    return;
-  }
+  //if (task->deadline_failures < 3)
+  //{
+  //  ++task->deadline_failures;
+  //  return;
+  //}
 
   // my pre-emptor is unstable and causes the system to hang so
   // this function isn't called any more
-  timer.uninstall_preemptor(); //  this should happen automatically 
-  exit(133);
+  //timer.uninstall_preemptor(); //  this should happen automatically 
+  //exit(133);
   
   //critical_error("task has executed longer than it's exec_bound");
   clrscr();
@@ -138,6 +140,9 @@ void kill_task(void* user_data)
 // bar representation of the scheduled tasks and how they will run
 void draw_tasks()
 {
+  gotoxy(2,4);
+  print_str_int("current tick: ", current_tick());
+
   // clear bars in display area
   for (unsigned i = 0; i < 10; i += 2)
   {

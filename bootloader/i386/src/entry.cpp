@@ -10,7 +10,7 @@
 #include "x86.h"
 
 // Some bogo delay value
-#define  DELAY  5000000
+#define  DELAY  10000000
 
 static int line;
 

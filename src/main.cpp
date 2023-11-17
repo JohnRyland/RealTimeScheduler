@@ -89,7 +89,7 @@ int main(int /*argc*/, const char* /*argv*/[])
   draw_frame_row(1, 25, '\xc3', '\xc5', '\xc5', '\xb4');
   draw_frame_row(1, 27, '\xc3', '\xc5', '\xc5', '\xb4');
   draw_frame_row(1, 37, '\xc0', '\xc1', '\xc1', '\xd9');
-  
+
   gotoxy(23, 38);
   puts2("Bar representation of tasks window");
   draw_bar_row(1, 39, '\xc2');
