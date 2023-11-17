@@ -1,5 +1,5 @@
 #
-# x86 Master Boot Record
+# MagicCore x86 Master Boot Record
 # Copyright (C) 2023, John Ryland
 # All rights reserved.
 #
@@ -105,12 +105,13 @@ continue_loading:
   xor    %di,%di
   mov    $0x0A,%ah
   mov    $welcome_msg,%esi  # 32-bit instr to work around clang linker issue
-  call   print
+  call   print16
 
   # Show Copyright information
+  mov    $160,%di
   mov    $0x07,%ah
   mov    $copyright_msg,%esi  # 32-bit instr to work around clang linker issue
-  call   print
+  call   print16
 
   # Scan the partition table for the active partition
   mov    $0x04,%cx
@@ -151,8 +152,9 @@ found_partition:
 
   # Print the info about which partition we are about to boot
   mov    $loading_partition_msg,%esi      # 32-bit instr to work around clang linker issue
-  mov    $0x0F,%ah
-  call   print
+  mov    $0x08,%ah
+  mov    $480,%di
+  call   print16
 
   # Check we have int13h BIOS extensions
   mov    $0x41,%ah
@@ -161,6 +163,10 @@ found_partition:
   movl   $error_loading_partition_msg,%esi   # 32-bit instr to work around clang linker issue
   cmp    $0xAA55,%bx
   jne    critical_error
+
+  mov    $(0x0800+'.'),%ax
+  stosw
+  push   %ax
 
 #  # Check the sector size (load extended drive parameter table)
 #  mov    $0x48,%ah
@@ -185,6 +191,10 @@ found_partition:
   jmp    critical_error
 load_success:
 
+  pop    %ax
+  stosw
+#  push   %ax
+
   # Verify the code loaded as expected
   movl   $invalid_volume_boot_record,%esi   # 32-bit instr to work around clang linker issue
   push   %ds
@@ -194,6 +204,9 @@ load_success:
   pop    %ds
   cmp    $0xAA55,%ax    # testing the signature
   jne    critical_error
+
+#  pop    %ax
+#  stosw
 
   # Restore registers so we can pass the following through to the VBR:
   # %dl = boot drive unit (we avoided clobbering it)
@@ -208,27 +221,31 @@ load_success:
 
 
 # Our mini runtime environment for our boot-loader
-print:                  # prints str in %si to screen offset in %di with attrib from %ah
-  push   %di
+
 print_loop:
-  lodsb
   stosw
+print16:                # prints str in %si to screen offset in %di with attrib from %ah
+  lodsb
   cmp    $0,%al
   jne    print_loop
-  pop    %di
-  add    $160,%di
   ret
 
-critical_error:
+critical_error:         # prints message in %si in red then halts
   mov    $0x0C,%ah
-  call   print
-halt:
+  call   print16
+  # fall-through to halt16
+
+halt16:                 # stop executing, freeze
   cli
   hlt
-  jmp    halt
+  jmp    halt16
+
 
 partiton_table_msg:
-  .asciz "Partition Table"
+#  .asciz "Partition Table"
+
+p_start:
+  .asciz ".parttab"
 
 # If this is to be a MBR then we need a partition table
 .org 0x7C00 + 510 - 4*16

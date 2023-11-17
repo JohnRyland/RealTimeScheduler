@@ -12,7 +12,7 @@
 
 // This belongs in the demo code
 
-void init_status();
+void initialize_status();
 void status_to_adding_a_task(acceptance_codes status, const char *message);
 void status_message(const char *message);
 

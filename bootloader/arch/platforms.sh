@@ -6,7 +6,7 @@
 #
 
 PLATFORMS="
-  i386
+  x86
   x86_64
   arm
   aarch64
@@ -24,5 +24,3 @@ for PLATFORM in ${PLATFORMS}
 do
   mkdir -p ${PLATFORM}
 done
-
-

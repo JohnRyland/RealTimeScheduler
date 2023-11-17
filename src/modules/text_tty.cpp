@@ -10,10 +10,7 @@
 
 #include "module/text.h"
 #include "module_manager.h"
-
-#include <cmath>
 #include <cstdio>
-#include <cstdlib>
 #include <sys/ioctl.h>
 #include <sys/termios.h>
 #include <termios.h>

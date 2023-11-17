@@ -8,9 +8,9 @@
 
 #include "types.h"
 
-bool modules_initialized();
-
 void initialize_modules();
+
+bool modules_initialized();
 
 void module_register(module_t& driver);
 

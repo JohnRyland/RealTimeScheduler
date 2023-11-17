@@ -31,6 +31,7 @@ void module_register(module_t& driver)
 // All potentially built-in module register functions
 extern void register_cpu_intel_x86_module();
 extern void register_cpu_generic_module();
+extern void register_ethernet_rtl8139_driver();
 extern void register_interrupt_generic_driver();
 extern void register_interrupts_intel_8259_driver();
 extern void register_keyboard_dos_driver();
@@ -54,17 +55,10 @@ extern void register_timer_linux_module();
 extern void register_timer_macos_module();
 extern void register_timer_win32_module();
 
-// Misc
-extern void conio_init();
-
 void initialize_modules()
 {
-  k_log_early(SUCCESS, "[X] Initializing modules - start");
-
   mem_set(module_class_head_ptrs, 0, sizeof(module_class_head_ptrs));
   // can call register_module here for all the built-in drivers
-
-  k_log_early(TRACE, "[X] Initializing modules - 1");
 
 # ifdef ENABLE_CPU_INTEL_X86
   register_cpu_intel_x86_module();
@@ -72,6 +66,9 @@ void initialize_modules()
 # ifdef ENABLE_CPU_GENERIC
   register_cpu_generic_module();
 # endif
+
+  //register_ethernet_rtl8139_driver();
+
 # ifdef ENABLE_INTERRUPTS_GENERIC
   register_interrupt_generic_driver();
 # endif
@@ -140,14 +137,6 @@ void initialize_modules()
 # endif
 
   _modules_initialized = true;
-
-  k_log_early(TRACE, "[X] Initializing modules - 2");
-
-//#ifdef _MACOS
-  conio_init();
-//#endif
-
-  k_log_early(TRACE, "[X] Initializing modules - 3");
 }
 
 module_t const* find_module_by_class(module_class driver_type)

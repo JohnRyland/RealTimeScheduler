@@ -8,10 +8,9 @@
 
 #ifdef ENABLE_INTERRUPTS_INTEL_8259
 
+#include "arch/x86/intrinsics.h"
 #include "module/interrupts.h"
 #include "module_manager.h"
-
-#include "../../bootloader/i386/include/x86.h"
 
 static
 void initialize()
@@ -152,6 +151,7 @@ module_t intel_8259_driver =
   .next    = nullptr,
   .prev    = nullptr,
   .vtable  = &intel_8259_vtable,
+ .instance = nullptr,
 };
 
 void register_interrupts_intel_8259_driver()

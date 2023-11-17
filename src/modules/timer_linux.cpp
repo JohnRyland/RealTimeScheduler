@@ -301,7 +301,7 @@ timer_driver_t macos_timer =
 
 timer_driver_t timer;
 
-void init_timer_driver()
+void initialize_timer_driver()
 {
   timer = macos_timer;
 }

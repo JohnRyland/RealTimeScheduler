@@ -52,6 +52,7 @@ struct serial_driver_vtable_t
   void (*initialize)(serial_driver_t* driver, baud_rate_t baud, word_size_t bits, stop_bits_t stop, parity_t parity);
   bool (*ready_to_recv)(serial_driver_t* driver);
   bool (*ready_to_send)(serial_driver_t* driver);
+  void (*irq_service_handler)(serial_driver_t* driver);
   uint8_t (*recv)(serial_driver_t* driver);
   void (*send)(serial_driver_t* driver, uint8_t data);
 };

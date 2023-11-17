@@ -12,7 +12,7 @@
 static
 unsigned status_row = 5;
 
-void init_status()
+void initialize_status()
 {
   status_row = 5;
 }
@@ -98,7 +98,7 @@ void status_to_adding_a_task(acceptance_codes status, const char *message)
 //static
 void print_str_int(const char* str, int val)
 {
-  k_log_fmt(DEBUG, "%s%i\n", str, val);
+  k_log_fmt(DEBUG, "%s%i \n", str, val);
 //  print_str(str);
 //  print_int(val);
 //  print_str("\n");
@@ -233,9 +233,24 @@ void run_on_line_scheduler()
     {
       gotoxy(2,4);
       print_str_int("current tick: ", current_tick());
+
       // wait for the next tick
       // this will call draw_tasks
-      delay(1, item->start_not_before);
+//      delay(1, item->start_not_before);
+
+      tick_t finish_at = current_tick() + 1;
+      while (current_tick() < finish_at)
+      {
+        // wait for next tick
+        
+        // wait for events
+        
+        // TODO: this is where can run non-realtime processes in this free time
+        // they will get pre-empted when the timer goes off
+        asm volatile ( "hlt" );
+
+      }
+
 
       if (kbhit())
       {
@@ -262,7 +277,7 @@ void run_on_line_scheduler()
       /* try again */
     }
 
-    const int fudgeMargin = 5;
+    const int fudgeMargin = 20;  // TODO: Annoyingly this is here to make things work, but goal should be to reduce this to 0
     while (timer.install_preemptor(current_tick() + item->task->exec_bound + fudgeMargin, kill_task, item->task) != true)
     {
       /* try again */
@@ -283,12 +298,12 @@ void run_on_line_scheduler()
 
 void test_deterministic()
 {
-  delay(49);
+  delay(5);
 }
 
 void test_exponential()
 {
-  delay(k_random(50));
+  delay(k_random(5));
 
   // Deliberately cause a fault to test the fault exception handling
 
@@ -307,16 +322,15 @@ void test_exponential()
 
 void test_binary()
 {
-  k_random(2) ? delay(49) : delay(k_random(50));
+  k_random(2) ? delay(1) : delay(k_random(10));
 }
 
 void test_added_on_the_fly()
 {
-  delay(99);
+  delay(9);
 }
 
 void test_adding_task_on_the_fly()
 {
-  status_to_adding_a_task(request_to_add_task(test_added_on_the_fly, 5, 0, 20000, 100, 30000, 1000, "Task added on the fly", 28, 26), "task added on the fly");
+  status_to_adding_a_task(request_to_add_task(test_added_on_the_fly, 6, 0, 20000, 10, 30000, 1000, "Task added on the fly", 54, 26), "task added on the fly");
 }
-

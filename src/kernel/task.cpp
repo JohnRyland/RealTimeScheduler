@@ -16,7 +16,7 @@ unsigned _items_in_list = 0;
 static
 task_t _task_list[MAX_TASKS - 1];
 
-void init_tasks()
+void initialize_tasks()
 {
   _items_in_list = 0;
 }

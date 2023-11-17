@@ -17,7 +17,7 @@ NO_RETURN
 void k_critical_error(int code, const char* fmt, ...);
 
 // dump an emergency screen with as much diagnostics as possible
-extern "C" 
+extern "C"
 NO_RETURN
 void k_panic();
 

@@ -25,7 +25,8 @@ typedef struct
 } scheduled_item_t;
 
 
-#define MAX_SCHEDULED_ITEMS    50
+// #define MAX_SCHEDULED_ITEMS    50
+#define MAX_SCHEDULED_ITEMS    4096
 
 //extern unsigned items_in_scheduled_item_list;
 //extern unsigned item_upto;
@@ -54,7 +55,7 @@ enum acceptance_codes
   scheduled_item_buffer_too_small = 6
 };
 
-void init_scheduler();
+void initialize_scheduler();
 
 void run_scheduled_item(scheduled_item_t *item);
 

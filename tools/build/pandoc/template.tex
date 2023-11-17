@@ -1,0 +1,96 @@
+%-----------------------------  TEMPLATE --------------------------
+\documentclass[12pt, oneside]{scrartcl}
+\usepackage{geometry}
+\geometry{a4paper} 
+\geometry{margin=1.2in}
+\usepackage{graphicx,amsmath,amssymb}
+\usepackage[utf8]{inputenc}
+\usepackage{textcomp,flafter,natbib,bm}
+\usepackage[pdftex,bookmarks,colorlinks,breaklinks,citecolor=blue,linkcolor=blue]{hyperref}
+\usepackage{memhfixc,booktabs,array}
+\usepackage{verbatim}
+\usepackage{tikz}
+\usepackage{datetime}
+\usepackage{longtable}
+%\pdfcompresslevel=0
+%\pdfobjcompresslevel=0
+\def\tightlist{}
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0.5em}
+
+% \usepackage[headsepline]{scrlayer-scrpage}
+% \ihead{\textsf{ Maths3D }}
+% \chead{\textsf{ \pagemark }}
+% \ohead{\textsf{ chaptertitle }}
+% \ifoot{\textsf{ L: \sectiontitle }}
+% \cfoot{\textsf{ Copyright \copyright\;\the\year{}, John \break All rights reserved }}
+% \ofoot{\textsf{ Page \thepage }}
+% \renewcommand*\pagemark{{\usekomafont{pagenumber}Page\nobreakspace\thepage}}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+%     l-left, r-right, c-center
+%        e-even, o-odd pages
+\fancyhead[LE,RO]{\color[HTML]{4F4F4F} \small \textsf{ \leftmark }}
+\fancyhead[RE,LO]{\color[HTML]{4F4F4F} \small \textsf{ $title$ }}
+\fancyfoot[RE,LO]{\color[HTML]{4F4F4F} \small \textsf{ \rightmark }}
+\fancyfoot[CE,CO]{\color[HTML]{4F4F4F} \small \textsf{ Copyright \copyright\;\the\year{}, $author$ \break All rights reserved }}
+\fancyfoot[LE,RO]{\color[HTML]{4F4F4F} \small \textsf{ Page \thepage }}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+
+\usepackage{float}
+\let\origfigure\figure
+\let\endorigfigure\endfigure
+\renewenvironment{figure}[1][2] {
+    \expandafter\origfigure\expandafter[H]
+} {
+    \endorigfigure
+}
+%-----------------------------  METADATA --------------------------
+\title{$title$}
+\author{$author$}
+\date{\today}
+%------------------------------- TITLE PAGE ------------------------------
+\begin{document}
+\begin{titlepage}
+\newgeometry{top=2cm, right=4cm, bottom=3cm, left=4cm}
+\begin{picture}(1,1)%
+  \put(-4cm,-27.3cm){\includegraphics[width=21.7cm,page=1]{$background$}}
+\end{picture}%
+%\tikz[remember picture,overlay] \node[inner sep=0pt] at (current page.center){$if(background)$\includegraphics[width=\paperwidth,height=\paperheight]{$background$}$endif$};
+\newcommand{\colorRule}[3][black]{\textcolor[HTML]{#1}{\rule{#2}{#3}}}
+\begin{flushleft}
+\noindent
+\\[-1em]
+\color[HTML]{$if(titlepage-text-color)$$titlepage-text-color$$else$5F5F5F$endif$}
+\makebox[0pt][l]{\colorRule[C0C0C0]{1.3\textwidth}{3pt}}
+\par
+\noindent
+\vfill
+\vskip -23em
+$if(logo)$\includegraphics{$logo$}$endif$
+\par
+\noindent{\huge \textbf{$if(title)$\textsf{$title$}$endif$}}
+$if(subtitle)$
+\vskip 1em
+{\Large \textsf{$subtitle$}}
+$endif$
+\vskip 2em
+\noindent {\Large \textsf{$for(author)$$author$$sep$, $endfor$} \vskip 0.6em \textsf{\today} }
+\vfill
+\end{flushleft}
+\end{titlepage}
+\restoregeometry
+%-----------------------------  CONTENTS --------------------------
+\sffamily{
+\color[HTML]{1F1F1F}
+\tableofcontents
+\listoffigures
+\newpage
+%------------------------------ SECTIONS -----------------------------
+$body$
+}
+%--------------------------------- END ------------------------------
+\end{document}

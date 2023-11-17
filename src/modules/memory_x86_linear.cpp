@@ -77,6 +77,7 @@ module_t memory_x86_linear_model =
   .next    = nullptr,
   .prev    = nullptr,
   .vtable  = &memory_x86_linear_vtable,
+  .instance = nullptr,
 };
 
 void register_memory_x86_linear_model()

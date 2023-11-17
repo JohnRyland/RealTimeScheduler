@@ -42,7 +42,7 @@ typedef void (*preemptor_t)(void* user_data);
 */
 
 void start_timer();
-void init_timer_driver();
+void initialize_timer_driver();
 
 void delay(ticks_t number_of_ticks, tick_t deadline = 0);
 

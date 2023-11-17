@@ -38,6 +38,7 @@ module_t scheduler_realtime_module =
   .next    = nullptr,
   .prev    = nullptr,
   .vtable  = &scheduler_realtime_vtable,
+  .instance = nullptr,
 };
 
 void register_scheduler_realtime_module()

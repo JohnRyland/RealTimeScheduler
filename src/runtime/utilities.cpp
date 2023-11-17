@@ -116,7 +116,7 @@ void check_sorted(uint8_t* base, size_t nel, size_t width, compare_t comp)
 void k_qsort(void* base, size_t nel, size_t width, compare_t compare_func)
 {
   static const bool use_heapsort = true;
-  if (nel > 1000 || width > 100)   // Make sure we aren't using this on anything big
+  if (nel > 5000 || width > 100)   // Make sure we aren't using this on anything big
     k_critical_error(129, " ###### bad sort input ###### ");
   if (use_heapsort)
     heapsort((uint8_t*)base, nel, width, compare_func);

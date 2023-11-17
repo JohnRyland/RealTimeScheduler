@@ -241,7 +241,7 @@ void initialize(serial_driver_t* driver, baud_rate_t baud, word_size_t bits, sto
 
   // Be able to receive IRQs for things which happen - can make the impl more efficient to be
   // interrupt driven
-  //outportb(driver->port + COM_IER_REG_OFFSET, 0x0F);    // Enable interrupts
+  outportb(driver->port + COM_IER_REG_OFFSET, 0x0F);    // Enable interrupts
 }
 
 static
@@ -256,6 +256,47 @@ uint8_t read_serial(serial_driver_t* driver)
   while (!ready_to_recv(driver))
     ;
   return inportb(driver->port);
+}
+
+static
+bool serial_data_waiting = false;
+
+static
+char serial_data_ch = 0;
+
+bool serial_waiting()
+{
+  static const uint16_t ports[] = { 0x03F8, 0x02F8, 0x03E8, 0x02E8 };
+  for (int i = 0; i < 4; i++)
+  {
+    outportb(ports[i] + COM_IER_REG_OFFSET, 0x0F);    // Enable interrupts
+    //inportb(ports[i] + COM_IIR_REG_OFFSET);
+    //inportb(ports[i]);
+  }
+
+  return serial_data_waiting;
+}
+
+char serial_char()
+{
+  serial_data_waiting = false;
+  return serial_data_ch;
+}
+
+static
+void irq_service_handler(serial_driver_t* driver)
+{
+  uint8_t action_map[] = { 6, 0xff, 2, 0xff, 0, 0xff, 5, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff };
+  uint8_t action = action_map[inportb(driver->port + COM_IIR_REG_OFFSET) & 0x0F];
+  if (action == 0)
+  {
+    //uint8_t register_to_read[] = { 6, 0, 2, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    //serial_data_ch = inportb(driver->port + register_to_read[inportb(driver->port + COM_IIR_REG_OFFSET) & 0x0F]);
+    serial_data_ch = inportb(driver->port);
+    serial_data_waiting = true;
+  }
+  else if (action != 0xff)
+    inportb(driver->port + action);
 }
 
 static
@@ -277,6 +318,7 @@ serial_driver_vtable_t serial_16650_vtable =
   .initialize = initialize,
   .ready_to_recv = ready_to_recv,
   .ready_to_send = ready_to_send,
+  .irq_service_handler = irq_service_handler,
   .recv = read_serial,
   .send = write_serial,
 };
@@ -372,10 +414,10 @@ module_t serial_port_4_driver =
 // 8250_uart is a predecesor
 void register_ti_16650_uart_driver()
 {
-  module_register(serial_port_1_driver);
-  module_register(serial_port_2_driver);
-  module_register(serial_port_3_driver);
   module_register(serial_port_4_driver);
+  module_register(serial_port_3_driver);
+  module_register(serial_port_2_driver);
+  module_register(serial_port_1_driver);
 }
 
 #endif // ENABLE_SERIAL_16650

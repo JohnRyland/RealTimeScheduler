@@ -4,18 +4,19 @@
 # All rights reserved.
 #
 
+#include "macros.S"
+
+.section init_array_section
+GLOBAL(init_array_end):
+
+.section init_early_section
+GLOBAL(init_early_end):
+
 .data
-
-.globl _data_end
-_data_end:
-  .byte  0xFF
-
+GLOBAL(data_end):
 
 .bss
+GLOBAL(bss_end):
 
-.globl _bss_end
-_bss_end:
-
-.globl _symbol_map_base
-_symbol_map_base:
-
+.bss
+GLOBAL(symbol_map_base):

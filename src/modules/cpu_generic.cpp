@@ -10,7 +10,6 @@
 
 #include "module/cpu.h"
 #include "module_manager.h"
-#include "setjmp.h"
 
 static
 void initialize()

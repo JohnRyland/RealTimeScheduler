@@ -19,7 +19,7 @@
 static
 void initialize()
 {
-  asm volatile ( "rdseedl %eax" );
+  asm volatile ( "rdseed %eax" );
 }
 
 static
@@ -69,6 +69,7 @@ module_t random_device =
   .next    = nullptr,
   .prev    = nullptr,
   .vtable  = &random_vtable,
+  .instance = nullptr,
 };
 
 void register_random_intel_x86_device()

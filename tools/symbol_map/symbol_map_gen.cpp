@@ -10,25 +10,40 @@
 
 #include <string>
 #include <iostream>
-#include <iomanip>
+#include <vector>
+//#include <iomanip>
 #include <cstdint>
-#include "../../include/types.h"
+//#include "../../include/types.h"
+#include "types/symbol.h"
 
 int main()
 {
   std::vector<symbol_entry> offtab;
   std::string strtab;
   unsigned offset;
-  while (std::cin >> std::hex >> offset)
+
+  //
+  // Parse lines of offset+symbol_name pairs which look like:
+  //
+  // 0x00010  symbol_name_a
+  // 0x00130  symbol_name_b
+  // 0x00230  symbol_name_c
+  //
+  // Assumes pre-sorted. Idea is can look up from a given address
+  // and see which offset is the first offset smaller or equal to
+  // that address. Can be used in printing a backtrace.
+  //
+  while (std::cin >> std::hex >> offset) // read hexadecimal value in to offset
   {
     std::string line;
-    std::getline(std::cin, line);
+    std::getline(std::cin, line); // read remainder of line which is the symbol name
     offtab.push_back(symbol_entry{offset, (uint32_t)strtab.size()});
     strtab += &line.c_str()[3]; // Skip past the symbol type character
   }
 
   symbol_table table = { 0xDDCC, (uint16_t)offtab.size() };
   fwrite(&table, sizeof(table), 1, stdout);
+
 /*
   // Output magic header value
   uint8_t magic[2] = { 0xCC, 0xDD };
@@ -49,4 +64,3 @@ int main()
   // Output string table of the symbol names
   printf("%s", strtab.c_str());
 }
-

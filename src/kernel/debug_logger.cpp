@@ -5,13 +5,72 @@
 */
 
 #include "module/text.h"
+#include "module/serial.h"
 #include "module_manager.h"
 #include "debug_logger.h"
-#include <cstdarg>
+#include <stdarg.h>
 
-//static int col;
-//static int row;
 static char attrib;
+
+static bool both = true;
+
+// static
+void log_char(char ch1)
+{
+  if (!modules_initialized())
+    return;
+
+  if (both) // TODO: need some more logic here, we could have VT (virtual terminals) where this buffers to
+  {
+    module_t const* text_display_module = find_module_by_class(module_class::TEXT_DISPLAY);
+    text_display_t*        text_display_data = (text_display_t*)text_display_module->instance;
+    text_display_vtable_t* text_display_functions = (text_display_vtable_t*)text_display_module->vtable;
+    text_display_functions->put_char(text_display_data, attrib, ch1);
+  }
+
+  // send to serial monitor
+  const module_t* serial = find_module_by_class(module_class::SERIAL_DRIVER);
+  if (serial) // TODO: We need some kind of kernel parameters/config to say which device is the debug serial device
+  {
+    unsigned char ch = static_cast<unsigned char>(ch1);
+    // These are each 3-bytes in utf-8 (but were a single byte in old DOS code-page / ROM font)
+    const char* charLUT = "│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌";
+    if (ch >= 0xB3 && ch <= 0xDA)
+    {
+      // This translation logic to escape codes belongs in some kind of TTY driver code (tty logic in both directions, encode and decode, independant of the device)
+      ch -= 0xB3;
+      char c1 = charLUT[ch*3+0];
+      char c2 = charLUT[ch*3+1];
+      char c3 = charLUT[ch*3+2];
+      ((serial_driver_vtable_t*)(serial->vtable))->send((serial_driver_t*)serial->instance, (uint8_t)c1);
+      ((serial_driver_vtable_t*)(serial->vtable))->send((serial_driver_t*)serial->instance, (uint8_t)c2);
+      ((serial_driver_vtable_t*)(serial->vtable))->send((serial_driver_t*)serial->instance, (uint8_t)c3);
+    }
+    else if (ch == 0xDB)
+    {
+      ((serial_driver_vtable_t*)(serial->vtable))->send((serial_driver_t*)serial->instance, (uint8_t)"▇"[0]);
+    }
+    else
+    {
+      ((serial_driver_vtable_t*)(serial->vtable))->send((serial_driver_t*)serial->instance, (uint8_t)ch);
+    }
+  }
+}
+
+void clear_screen()
+{
+  module_t const* text_display_module = find_module_by_class(module_class::TEXT_DISPLAY);
+  text_display_t*        text_display_data = (text_display_t*)text_display_module->instance;
+  text_display_vtable_t* text_display_functions = (text_display_vtable_t*)text_display_module->vtable;
+  text_display_functions->clear(text_display_data);
+
+  // send control codes to serial monitor
+  both = false;
+  log_char('\033');
+  log_char('c');
+ // k_log_fmt(TRACE, "\\033[2J");
+  both = true;
+}
 
 //static
 void goto_xy(unsigned x, unsigned y)
@@ -20,17 +79,11 @@ void goto_xy(unsigned x, unsigned y)
   text_display_t*        text_display_data = (text_display_t*)text_display_module->instance;
   text_display_vtable_t* text_display_functions = (text_display_vtable_t*)text_display_module->vtable;
   text_display_functions->goto_xy(text_display_data, x, y);
-}
 
-static
-void log_char(char ch)
-{
-  if (!modules_initialized())
-    return;
-  module_t const* text_display_module = find_module_by_class(module_class::TEXT_DISPLAY);
-  text_display_t*        text_display_data = (text_display_t*)text_display_module->instance;
-  text_display_vtable_t* text_display_functions = (text_display_vtable_t*)text_display_module->vtable;
-  text_display_functions->put_char(text_display_data, attrib, ch);
+  // send control codes to serial monitor
+  both = false;
+  k_log_fmt(TRACE, "\033[%i;%iH", y + 1, x + 1);
+  both = true;
 }
 
 static
@@ -40,20 +93,25 @@ void log_str(const char* msg)
     log_char(*msg++);
 }
 
-template <unsigned BASE>
+template <typename T, unsigned BASE, int PAD=0>
 static inline
-void log_number(unsigned val)
+void log_number(T val)
 {
+  static_assert(PAD < 22, "Pad value too large");
   static const uint8_t base = (BASE > 16) ? 16 : BASE;  // clamp it to 16 or less
   static const char digits[] = "0123456789ABCDEF";      // character map
   // char buf[22] = {}; // with intializiation like this, it breaks at runtime if build with x86_64-elf-gcc.
   char buf[22];                     // big enough for 64-bit number in decimal
   buf[21] = 0;                      // put nul at what will be the end of the string
   char* ptr = buf + 21;             // point to the destination in the string of the last character of the number
+  int pad = PAD;
   do {                              // loop at least once, so if val is zero it will put at least one character which is '0'.
     *(--ptr) = digits[val % base];  // keep writing out the next number working to the left (to the most significant digits)
+    --pad;
   } while (val /= base);            // until we have processed every decimal digit.
-  log_str(ptr);                   // now print the resulting string from the most significant digit we last wrote.
+  while (pad-- > 0)
+    *(--ptr) = '0';
+  log_str(ptr);                     // now print the resulting string from the most significant digit we last wrote.
 }
 
 static
@@ -87,30 +145,15 @@ void k_log_vfmt(log_level level, const char* fmt, va_list ap)
   {
     switch (*fmt)
     {
-        case '\\':
-            fmt++;
-            switch (*fmt)
-            {
-                case 'a': log_char('\a'); break;
-                case 'b': log_char('\b'); break;
-                case 'e': log_char('\e'); break;
-                case 'f': log_char('\f'); break;
-                case 'n': log_char('\n'); break;
-                //case 'p': log_char('\p'); break;
-                case 'r': log_char('\r'); break;
-                case 't': log_char('\t'); break;
-                //case 'u': log_char('\u'); break;
-                case 'v': log_char('\v'); break;
-                case 0: fmt--; break;
-            }
-            break;
         case '%':
             fmt++;
             switch (*fmt)
             {
-                case 'd': log_number<10>(va_arg(ap, int)); break;
-                case 'i': log_number<10>(va_arg(ap, int)); break;
-                case 'x': log_number<16>(va_arg(ap, int)); break;
+                // TODO: everything is treated as unsigned, also floats not supported yet
+                case 'd': log_number<int, 10>(va_arg(ap, int)); break;
+                case 'i': log_number<int, 10>(va_arg(ap, int)); break;
+                case 'x': log_number<uint32_t, 16, 8>(va_arg(ap, uint32_t)); break;
+                case 'X': log_number<uint64_t, 16, 16>(va_arg(ap, uint64_t)); break;
                 case '%': log_char('%'); break;
                 case 'f': log_float(va_arg(ap, double)); break;
                 case 'c': log_char(va_arg(ap, int)); break;
@@ -133,61 +176,3 @@ void k_log_fmt(log_level level, const char* fmt, ...)
   k_log_vfmt(level, fmt, ap);
   va_end(ap);
 }
-
-/*
-static
-void new_line()
-{
-  col = 0;
-  row++;
-  if (row > 49)
-  {
-    char* videoMemory = (char*)0xB8000;
-    for (int i = 0; i < 160*49; ++i)
-      videoMemory[i] = videoMemory[i+160];
-    for (int i = 0; i < 160; ++i)
-      videoMemory[i+160*49] = 0;
-    row--;
-  }
-}
-
-static
-void add_char(char ch)
-{
-  char* videoMemory = (char*)0xB8000;
-  videoMemory[row*160+col*2+0] = ch;
-  videoMemory[row*160+col*2+1] = attrib;
-  col++;
-  if (col >= 80)
-    new_line();
-}
-
-//static
-void print(const char* string)
-{
-  while (*string)
-  {
-    if (*string == '\n')
-      new_line();
-    else
-      add_char(*string);
-    string++;
-  }
-  new_line();
-}
-
-//static
-void printn(const char* string, int count)
-{
-  for (int i = 0; i < count; ++i)
-    add_char(string[i]);
-}
-
-//static
-void stamp_hex32(char* dest, uint32_t val)
-{
-  static const char hex_digit[] = "0123456789ABCDEF";
-  for (int i = 0; i < 8; ++i)
-    dest[i] = hex_digit[(val >> ((7 - i)*4)) & 0xF];
-}
-*/

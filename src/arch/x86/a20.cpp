@@ -4,18 +4,17 @@
   All rights reserved.
 */
 
-#include "constants.h"
-#include "x86.h"
-#include "stdint.h"
+#include "arch/x86/constants.h"
+#include "arch/x86/intrinsics.h"
 
+
+// We have an asm equivalent for this in start.S
 bool a20_is_enabled()
 {
-  disable(); // cli
-
-  volatile uint8_t* addr0 = (uint8_t*)(0x00000500);
-  volatile uint8_t* addr1 = (uint8_t*)(0x00100500); // addr0 + 1MB
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
+  volatile uint8_t* addr0 = (uint8_t*)(0x00000500); // hopefully isn't an address that matters
+  volatile uint8_t* addr1 = (uint8_t*)(0x00100500); // addr0 + 1MB  (if not A20 enabled, memory access will wrap)
   uint8_t orig_val0 = *addr0;
   uint8_t orig_val1 = *addr1;
   *addr0 = 0;
@@ -23,10 +22,8 @@ bool a20_is_enabled()
   bool enabled = (*addr0 != *addr1);
   *addr0 = orig_val0;
   *addr1 = orig_val1;
-#pragma GCC diagnostic pop
-
-  enable();  // sti
   return enabled;
+#pragma GCC diagnostic pop
 }
 
 void ppi_send_cmd(uint8_t cmd)
@@ -105,6 +102,9 @@ void bios_enable_a20()
 
 void enable_a20()
 {
+  disable(); // cli
+//  enable();  // sti
+
   if (a20_is_enabled())
     return;
 /*
@@ -118,6 +118,6 @@ void enable_a20()
     return;
   ppi_enable_a20();
   if (!a20_is_enabled())
-    ; // failed
+  {} // failed
 }
 

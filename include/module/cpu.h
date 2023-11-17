@@ -21,7 +21,7 @@ enum class cpu_register_t : uint8_t
 struct cpu_state_vtable_t
 {
   void (*initialize)();
-  void (*halt)();
+  void (*halt)();         // make the cpu idle until next interrupt
 
   void (*enable_interrupts)();
   void (*disable_interrupts)();

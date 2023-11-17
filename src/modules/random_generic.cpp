@@ -5,13 +5,13 @@
 */
 
 #include <config.h>
-#include <ctime>
 
 #ifdef ENABLE_RANDOM_GENERIC
 
 #include "module/random.h"
 #include "module_manager.h"
 #include <cstdlib>
+#include <ctime>
 
 static
 void initialize()

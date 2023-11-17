@@ -46,7 +46,7 @@ bool mem_move(mem dst, const mem src)
     for (size_t i = 0; i < src.size; ++i)
       dstc[i] = srcc[i];
   else
-    for (size_t i = src.size-1; i >= 0; --i)
+    for (size_t i = src.size-1; (i+1) >= 1; --i)
       dstc[i] = srcc[i];
   return true;
 }
@@ -127,7 +127,7 @@ void* mem_move(void* dst, const void* src, size_t len)
     for (size_t i = 0; i < len; ++i)
       dstc[i] = srcc[i];
   else
-    for (size_t i = len-1; i >= 0; --i)
+    for (size_t i = len-1; (i+1) >= 1; --i)
       dstc[i] = srcc[i];
   return dst;
 }

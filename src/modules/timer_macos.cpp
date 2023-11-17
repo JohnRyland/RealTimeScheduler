@@ -264,7 +264,7 @@ timer_driver_t& get_timer_ref()
   return macos_timer;
 }
 
-void init_timer_driver()
+void initialize_timer_driver()
 {
   timer = macos_timer;
 }
@@ -531,7 +531,7 @@ timer_driver_t& get_timer_ref()
   return macos_timer;
 }
 
-void init_timer_driver()
+void initialize_timer_driver()
 {
   timer = macos_timer;
 }

@@ -43,7 +43,7 @@ void add_char(char ch)
 }
 
 static
-void print(const char* string)
+void failsafe_print(const char* string)
 {
   while (*string)
   {
@@ -57,7 +57,7 @@ void print(const char* string)
 }
 
 static
-void printn(const char* string, int count)
+void failsafe_print_n(const char* string, int count)
 {
   for (int i = 0; i < count; ++i)
     add_char(string[i]);
@@ -97,6 +97,32 @@ struct registers_t
   uint32_t cs;
 };
 
+struct jmpbuf_t
+{
+  uint32_t eax;
+  uint32_t ebx;
+  uint32_t ecx;
+  uint32_t edx;
+  uint32_t esi;
+  uint32_t edi;
+  uint32_t ebp;
+  uint32_t esp;
+  uint32_t eip;
+  uint32_t flags;
+  uint16_t cs;
+  uint16_t ds;
+  uint16_t es;
+  uint16_t fs;
+  uint16_t gs;
+  uint16_t ss;
+};
+
+extern "C"
+void k_setjmp(jmpbuf_t& buf);
+
+extern "C"
+void k_longjmp(jmpbuf_t& buf);
+
 NO_RETURN
 void k_halt()
 {
@@ -105,6 +131,8 @@ void k_halt()
     ;
 }
 
+extern void k_power_off();
+
 NO_RETURN
 void exit(int code)
 {
@@ -112,37 +140,83 @@ void exit(int code)
   k_log_early(ERROR, " *** EXIT *** ");
 
   // If happens later, give more details
-  clrscr();
-  gotoxy(0, 1);
+  //clrscr();
+  //gotoxy(0, 1);
   k_log_fmt(ERROR, " *** EXIT *** \n Exit code %i\n", code);
+
+  k_power_off();
   k_halt();
 }
 
 extern "C"
-const uint8_t symbol_map_base;
+const uint8_t symbol_map_base[32];
 
 int compare_symbols(const void* a, const void* b)
 {
   const symbol_entry* sym_a = (const symbol_entry*)a;
   const symbol_entry* sym_b = (const symbol_entry*)b;
   const symbol_entry* sym_c = &sym_b[1];
-  if (sym_a->address < sym_b->address)
+  if (sym_a->address <= sym_b->address)
     return -1;
   if (sym_a->address > sym_c->address)
     return 1;
   return 0;
 }
 
-extern "C"
-void panic_helper(registers_t regs)
+void dump_callstack(uint32_t* stack_pointer)
 {
+  const symbol_table* symbol_map = (const symbol_table*)&symbol_map_base;
+  const symbol_entry* symbol_entries = symbol_map->entries;
+  const uint16_t symbol_entry_count = symbol_map->count;
+  const char* symbol_map_strs = (const char*)symbol_entries + symbol_entry_count * sizeof(symbol_entry);
+  uint32_t print_count = 0;
+
+  while ((size_t)stack_pointer < 0x0208000)
+  {
+    uint32_t val = *stack_pointer;
+    if (val > 0x7C00 && val < 0x10000)
+    {
+      static const char stack_value[] = "0x00000000 ";
+
+      symbol_entry key = { val, 0 };
+      const symbol_entry* ent = (const symbol_entry*)k_bsearch((void*)&key, symbol_entries, symbol_entry_count, sizeof(symbol_entry), compare_symbols);
+      
+      stamp_hex32((char*)&stack_value[2], (size_t)stack_pointer);
+      failsafe_print_n(stack_value, 11);
+
+      stamp_hex32((char*)&stack_value[2], val);
+      failsafe_print_n(stack_value, 11);
+
+      uint32_t len = ent[1].symbol_offset - ent[0].symbol_offset;
+      if (len > 44)
+        len = 44;
+      failsafe_print_n(symbol_map_strs + ent[0].symbol_offset, len);
+      new_line();
+
+      ++print_count;
+      if (print_count > 30)
+        break;
+    }
+    
+    stack_pointer++;
+  }
+}
+
+void dump_registers(jmpbuf_t& /*registers*/)
+{
+}
+
+void panic_helper_impl(int off)
+{
+  uint32_t flags;
+
   init();
 
   attrib2 = 0x0C;
-  print("\n\nKernel Panic!\n");
+  failsafe_print("\n\nKernel Panic!\n");
   
   attrib2 = 0x0F;
-  print("\nRegisters:\n\n");
+  failsafe_print("\nRegisters:\n\n");
 
   static const char reg_msg[] =
     "Flg: 0x00000000\n"
@@ -160,47 +234,31 @@ void panic_helper(registers_t regs)
   //memcpy(reg_msg_buf, reg_msg, sizeof(reg_msg)); // problem? link error?
 
   for (int i = 0; i < 15; ++i)
-    stamp_hex32((char*)&reg_msg_buf[7 + 16*i], (&regs.flags)[13-i]);
-  print(reg_msg_buf);
+    stamp_hex32((char*)&reg_msg_buf[7 + 16*i], (&flags)[off-i]);
+  failsafe_print(reg_msg_buf);
   
-  const symbol_table* symbol_map = (const symbol_table*)&symbol_map_base;
-  const symbol_entry* symbol_entries = symbol_map->entries;
-  const uint16_t symbol_entry_count = symbol_map->count;
-  const char* symbol_map_strs = (const char*)symbol_entries + symbol_entry_count * sizeof(symbol_entry);
+  uint32_t* stack_pointer = &((&flags)[off-14]);
+  dump_callstack(stack_pointer - 32);
+}
 
-  uint32_t* stack_pointer = &((&regs.flags)[13-14]);
-  uint32_t print_count = 0;
-  while ((size_t)stack_pointer < 0x01008000)
-  {
-    uint32_t val = *stack_pointer;
-    if (val > 0x7C00 && val < 0x10000)
-    {
-      static const char stack_value[] = "0x00000000 ";
+extern "C"
+void panic_helper()
+{
+  col = 0;
+  row = 0;
+  attrib2 = 0x0C;
+  failsafe_print("MachO Build\n");
+  panic_helper_impl(21);
+}
 
-      symbol_entry key = { val, 0 };
-      const symbol_entry* ent = (const symbol_entry*)k_bsearch((void*)&key, symbol_entries, symbol_entry_count, sizeof(symbol_entry), compare_symbols);
-      
-      stamp_hex32((char*)&stack_value[2], (size_t)stack_pointer);
-      printn(stack_value, 11);
-
-      stamp_hex32((char*)&stack_value[2], val);
-      printn(stack_value, 11);
-
-      uint32_t len = ent[1].symbol_offset - ent[0].symbol_offset;
-      if (len > 44)
-        len = 44;
-      printn(symbol_map_strs + ent[0].symbol_offset, len);
-      new_line();
-
-      ++print_count;
-      if (print_count > 30)
-        break;
-    }
-    
-    stack_pointer++;
-  }
-
-  k_halt();
+extern "C"
+void _panic_helper()
+{
+  col = 0;
+  row = 0;
+  attrib2 = 0x0C;
+  failsafe_print("ELF Build\n");
+  panic_helper_impl(37);
 }
 
 void k_fault_handler(fault_t fault)
@@ -260,6 +318,8 @@ void k_fault_handler(fault_t fault)
 NO_RETURN
 void k_critical_error(int code, const char* fmt, ...)
 {
+  uint32_t stack_variable;
+
   // If error happens early, ensure we see something
   k_log_early(CRITICAL, " *** CRITICAL ERROR *** ");
 
@@ -272,7 +332,10 @@ void k_critical_error(int code, const char* fmt, ...)
   va_start(ap, fmt); 
   k_log_vfmt(CRITICAL, fmt, ap);
   k_log_fmt(CRITICAL, "*** CRITICAL ERROR ***\nError code: %i\n", code);
-  k_panic();
+
+  dump_callstack(&stack_variable);
+  //k_panic();
+
   k_halt();
   va_end(ap);
 }

@@ -6,6 +6,7 @@
 
 #include <config.h>
 
+// https://www.kernel.org/doc/gorman/html/understand/understand006.html
 #ifdef ENABLE_MEMORY_X86_VIRTUAL
 
 #include "module/memory.h"
@@ -19,6 +20,9 @@ void initialize()
 static
 void flush_page_tables()
 {
+  // clear caches:
+  // asm volatile ("wbinvd");
+  // invlpg, clflush, clflushopt
 }
 
 static

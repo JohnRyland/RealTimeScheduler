@@ -10,7 +10,7 @@
 
 // These sized integer types help a lot with
 // dealing with fixed hardware data structures
-#if __cplusplus >= 201103L
+#if 0 // __cplusplus >= 201103L
 #  include <cstdint>
 #  include <cstddef>
 #else

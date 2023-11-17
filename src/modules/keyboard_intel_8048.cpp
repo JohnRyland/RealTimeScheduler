@@ -10,9 +10,7 @@
 
 #include "module/keyboard.h"
 #include "module_manager.h"
-
-#include "constants.h"
-#include "x86.h"
+#include "arch/x86/intrinsics.h"
 
 //   - Programmable Peripheral Interface (8042)
 #        define   PPI_DATA            0x60
@@ -25,7 +23,7 @@ void initialize()
 }
 
 static
-bool key_pressed()
+bool key_waiting()
 {
   // check if a key is waiting
   int status = inportb(PPI_STATUS);
@@ -36,11 +34,24 @@ bool key_pressed()
   return true;
 }
 
+extern bool serial_waiting();
+extern char serial_char();
+
+static
+bool key_pressed()
+{
+  return serial_waiting() || key_waiting();
+}
+
 static
 int get_char()
 {
-    while (!key_pressed())
+  while (!key_pressed() && !serial_waiting())
     /* wait */;
+
+  if (serial_waiting())
+    return serial_char();
+
   unsigned int ch = (unsigned char)inportb(PPI_DATA); // read the key that is pressed
 
   // Rough keymap
@@ -73,6 +84,7 @@ module_t keyboard_intel_8048_driver =
   .next    = nullptr,
   .prev    = nullptr,
   .vtable  = &keyboard_intel_8048_vtable,
+  .instance = nullptr,
 };
 
 void register_keyboard_intel_8048_driver()

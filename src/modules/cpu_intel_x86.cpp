@@ -103,6 +103,7 @@ module_t cpu_module =
   .next    = nullptr,
   .prev    = nullptr,
   .vtable  = &cpu_state_vtable,
+  .instance = nullptr,
 };
 
 void register_cpu_intel_x86_module()
