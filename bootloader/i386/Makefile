@@ -6,9 +6,10 @@
 
 all: release
 
-../../.modules/GenericMake/Generic.mak:
-	@echo "Fetching GenericMake"
-	@git clone https://github.com/JohnRyland/GenericMake.git ../../.modules/GenericMake
+# -include ../../tools/build/Generic.mak
 
--include ../../.modules/GenericMake/Generic.mak
+-include ../../tools/build/build_start.inc
 
+-include $(PROJECT_FILE)
+
+-include ../../tools/build/build_end.inc

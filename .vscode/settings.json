@@ -73,7 +73,7 @@
     // My custom config
     "makeBuildConfig" : {
         "makeDirectory":  "${workspaceRoot}/bootloader/i386",
-        "makeTarget":     "bin/image.bin",
+        "makeTarget":     "bin/image.qcow2",
         "makeTargetArg0": "",
         "makeTargetArg1": "",
     },
@@ -122,6 +122,27 @@
         "--compile-commands-dir=${workspaceRoot}/.vscode",
         "--fallback-style=Mozilla",
         "--background-index"
+    ],
+    "clangd.fallbackFlags": [
+        "-std=c++23",
+        "-m32",
+
+        // "-D_MACOS",
+        // "-I${workspaceFolder}/configs/macos",
+
+        // "-D_LINUX",
+        // "-I${workspaceFolder}/configs/linux",
+
+        // "-D_WIN32",
+        // "-I${workspaceFolder}/configs/win32",
+
+        "-D_I386",
+        "-I${workspaceFolder}/configs/i386",
+
+        "-I${workspaceFolder}/include",
+        "-I${workspaceFolder}/include/kernel",
+        "-I${workspaceFolder}/include/module",
+        "-I${workspaceFolder}/include/runtime"
     ],
     "C_Cpp.suggestSnippets": true,
     "workbench.editor.enablePreviewFromQuickOpen": false,

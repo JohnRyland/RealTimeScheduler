@@ -44,14 +44,14 @@
             "request":           "launch",
             "type":              "cppdbg",
             "MIMode":            "gdb",
-            "miDebuggerArgs":    "-ex \"set architecture i386:x86-64:intel\" -ex \"target remote localhost:1234\" ",
+            "miDebuggerArgs":    "-ex \"shell make -C ${workspaceFolder}/bootloader/i386 vscode-debug\" -ex \"set architecture i386:x86-64:intel\" -ex \"target remote localhost:1234\"",
             "cwd":               "${workspaceFolder}",
-            "program":           "${workspaceFolder}/bootloader/i386/bin/image.sym",
+            "program":           "${workspaceFolder}/bootloader/i386/bin/kernel.sym",
             "preLaunchTask":     "${config:makeBuildTask}",
             "stopAtEntry":       false,
-            "externalConsole":   false,
+            "externalConsole":   true,
             "logging": {
-                "engineLogging": false
+                "engineLogging": true
             },
         }
     ]

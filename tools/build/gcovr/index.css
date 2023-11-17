@@ -1,0 +1,63 @@
+/*
+    Patch CSS for the gcovr index.css
+    Just append this to the output index.css to beautify the output
+ */
+
+:root
+{
+    width: 1000px;
+    margin: auto;
+    background-color: #a6a6a6;
+    font-family: Apple SD Gothic Neo, Helvetica Neue, Helvetica;
+    font-size: 12px;
+    height: 100%;
+}
+
+h1
+{
+    color: rgba(226, 252, 236, 0.86);
+    width: 750px;
+    padding: 10px 10px 5px 10px;
+    border: 2px solid rgba(110, 110, 110, 0.31);
+    margin: 0px auto 15px auto;
+    background-color: rgba(90, 126, 208, 0.91);
+    border-radius: 10px;
+}
+
+header, footer, main
+{
+    text-align: center;
+    border: 10px black;
+    margin: 20px;
+}
+
+.file-list tr td
+{
+    padding: 3px;
+}
+
+.coverage
+{
+    width: 500px;
+}
+
+nav,table
+{
+    margin: 10px;
+}
+
+a
+{
+     font-family: Apple SD Gothic Neo, Helvetica Neue, Helvetica;
+}
+
+body
+{
+    margin: 1px;
+    padding: 1px;
+    border-color: #777;
+    border-style: solid;
+    border-width: 1px;
+    background-color: #dadada;
+}
+

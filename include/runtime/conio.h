@@ -9,10 +9,15 @@
 // 43x50 character screen mode
 #define C4350  3
 
-extern void clrscr();
-extern void gotoxy(unsigned,unsigned);
-extern void textmode(int);
-extern int getch();
-extern void putch(char);
-extern bool kbhit();
-extern void puts2(const char*);
+// TC/DOS conio library functions
+extern "C"
+{
+  void clrscr();
+  void gotoxy(unsigned,unsigned);
+  void textmode(int);
+  int getch();
+  void putch(char);
+  bool kbhit();
+  void puts2(const char*);
+};
+

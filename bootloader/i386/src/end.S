@@ -1,12 +1,22 @@
+#
+# End section of kernel (symbol map appended here)
+# Copyright (C) 2023, John Ryland
+# All rights reserved.
+#
 
-// https://wiki.osdev.org/Calling_Global_Constructors
+#include "macros.S"
 
-# .section .init
-# 	// gcc will insert crtend.o's .init section here
-# 	popl %ebp
-# 	ret
-# 
-# .section .fini
-# 	// gcc will insert crtend.o's .fini section here
-# 	popl %ebp
-# 	ret
+.section init_array_section
+GLOBAL(init_array_end):
+
+.section init_early_section
+GLOBAL(init_early_end):
+
+.data
+GLOBAL(data_end):
+
+.bss
+GLOBAL(bss_end):
+
+.bss
+GLOBAL(symbol_map_base):

@@ -1,8 +1,10 @@
 #
-# x86 Volume Boot Record
+# MagicCore x86 Volume Boot Record
 # Copyright (C) 2023, John Ryland
 # All rights reserved.
 #
+
+.text
 
 # CPU starts up in 16-bit mode
 .code16
@@ -13,18 +15,92 @@
 start:
   jmp   volume_boot_entry
 
-welcome_msg:
-  .asciz "MagicCore Volume Boot Record v1.0"
+.org 0x7C04
+# Global bootloader parameters
+    
+default_boot_entry:
+boot_entry:
+  .byte 0x00
 
-copyright_msg:
-  .asciz "Copyright (C) 2023, John Ryland"
+# Delay in milliseconds
+#      0 is infinity
+#      1 is 1ms
+#   1000 is 1s
+#  65536 is 65s
+bootload_delay_ms:
+  .word 800
 
-# This is the logical-block-address descriptor to load 2nd stage
+entry_selector:
+  xorl   %eax,%eax
+  movb   boot_entry(%eax),%dl
+
+key_pressed:
+  mov    $800,%di
+  mov    $4,%cx
+  xor    %dh,%dh
+  movl   $entry_0,%esi
+
+ent:
+  pusha
+
+  and    $3,%dl
+  xorl   %eax,%eax
+  mov    %dl,boot_entry(%eax)
+  cmp    %dl,%dh
+  
+  # draw  '->'  infront of selected item
+  jne    ovr
+  mov    $0x0F,%ah
+  mov    $'-',%al
+  stosw
+  mov    $'>',%al
+  jmp    ovr2
+ovr:
+  xor    %ax,%ax
+  stosw
+ ovr2:
+  stosw
+  add    $2,%di
+
+  mov    $0x0F,%ah
+  call   print16
+  popa
+
+  inc    %dh
+  add    $160,%di
+  add    $32,%si
+  loop   ent
+
+  xor    %ax,%ax
+  int    $0x16
+  cmp    $0x48,%ah            # up pressed
+  jne    not_up
+  dec    %dl
+not_up:
+  cmp    $0x50,%ah            # down pressed
+  jne    not_down
+  inc    %dl
+not_down:
+  cmp    $0x1C,%ah            # enter pressed
+  jne    key_pressed
+  popa                        # enter / select
+  jmp    cont
+
+# welcome_msg:
+#   .asciz "MagicCore Volume Boot Record v1.0"
+
+#copyright_msg:
+#  .asciz "Copyright (C) 2023, John Ryland"
+
+# This is the logical-block-address descriptor to load 2nd stage / kernel - TODO: merge this in to the parameter block
 lba_data:
   # Disk Address Packet (DAP)
   .byte 0x10, 0x00      # Size of DAP, reserved
-  .word 0x007F          # Number of sectors to read (seems like a limitation of a max of 127 or 128 depending on the BIOS - or 16-bit segment limit)
-  .word 0x7E00, 0x0000  # Destination offset and segment (0x7C00 + 512bytes, BIOS already loads 1st sector for us)
+  .word 0x0040          # Number of sectors to read (seems like a limitation of a max of 127 or 128 depending on the BIOS - or 16-bit segment limit)
+lba_data_offset:        # Just to be safe, will limit to loading 64 sectors at a time which is 2kb. This is just for bootloading.
+  .word 0x0000          # Linear destination is 0x00007E00 (0x7C00 + 512bytes, BIOS already loads 1st sector for us)
+lba_data_segment:       # As a real mode 16bit segment:offset address this could be 0x0000:0x7E00 or  
+  .word 0x07E0          # any one of other possibilities, but we choose 0x07E00:0x0000 so INT13h has a full 64k in the offset to load without wrapping.
 lba_data_sector:
   .long 0x0002, 0x0000  # LBA sector on disk to start reading from (64-bit value, we start at 2nd sector as BIOS loaded the 1st one)
 
@@ -38,9 +114,10 @@ lba_data_sector:
   #    incl eax
   #    lba_data[8] = eax
   #
-  # Also in ES:DI is PnP info past to the MBR by the BIOS if it supports
+  # Also in ES:DI is PnP info passed to the MBR by the BIOS if it supports
   # this. DL is the drive which is booted still carried through also.
 
+  #  Debug print what is at es:di
   # mov    %es,%ax
   # mov    %ax,%ds
   # mov    %di,%si
@@ -89,7 +166,7 @@ volume_boot_entry:
   inc    %ax
   mov    %cs,%bx
   mov    %bx,%ds
-  mov    $lba_data_sector,%esi   # 32-bit instr to work around clang linker issue
+  movl   $lba_data_sector,%esi   # 32-bit instr to work around clang linker issue
   mov    %ax,(%si)
   mov    %cx,4(%si)
 
@@ -97,68 +174,110 @@ volume_boot_entry:
   xor    %ax,%ax
   mov    $0xB8,%ah    # 0xb800 text video memory segment address
   mov    %ax,%es
-
-  # Print Welcome/Version Info
-  movw   $480,%di
-  mov    $0x0A,%ah
-  movl   $welcome_msg,%esi
-  call   print16
-
-  # Read the kernel (or second stage bootloader) directly after the VBR (volume boot record)
-  movl   $lba_data,%esi
-  movb   $0x42,%ah
-  int    $0x13         # DL is the drive number, it is passed in at start
-  jc     panic16       # TODO: improve the error messages
-
-  # Verify the code loaded as expected
-  movw   (0x7FFE),%ax
-  cmpw   $0xAA55,%ax   # testing the signature
-  jne    panic16       # TODO: improve the error messages
-
-  # Verify the code loaded as expected
-  movw   (0x81FE),%ax
-  cmpw   $0x55AA,%ax   # testing the signature
-  jne    panic16       # TODO: improve the error messages
-
-  # Enable A20 Gate (needed if plan to use >1MB of RAM)
-  movw   $0x2401,%ax
-  int    $0x15
-
-  # Show Copyright information
-  movw   $640,%di
-  mov    $0x07,%ah
-  movl   $copyright_msg,%esi
-  call   print16
-
-  # Load Global Descriptor Table
-  lgdtl   gdt32ptr
+  xorl   %eax,%eax
+  mov    bootload_delay_ms(%eax),%cx
+delay_loop16:
+  pusha
+  xor    %cx,%cx
+  mov    $0x0100,%dx  # About 1ms
+  mov    $0x86,%ah
+  int    $0x15        # Wait
+  mov    $0x01,%ah
+  int    $0x16        # Check if key pressed
+  jnz    entry_selector
+  popa
+  loop   delay_loop16
+cont:
 
   # Setup screen to double line text mode
-  movw   $0x1112,%ax
-  int    $0x10     # Set 80x50 mode (8x8 font)
+  # movw   $0x1112,%ax
+  # int    $0x10     # Set 80x50 mode (8x8 font)
 
-  # Mask the IRQs
-  #movb   $0x00,%al
-	#outb   %al,$0x21
-  #movb   $0x00,%al
-	#outb   %al,$0xA1
+  # Print Welcome/Version Info
+  # movw   $640,%di
+  # mov    $0x0A,%ah
+  # movl   $welcome_msg,%esi
 
-  # Enable 32-bit Protected Mode (set bit 0 in CR0)
-  movl   %cr0,%eax
-  orl    $(1<<0),%eax
-  movl   %eax,%cr0
 
-  # Setup Segment Registers
-  xorl   %eax,%eax
-  movl   %eax,%fs
-  movl   %eax,%gs
-  movb   $0x10,%al
-  movl   %eax,%ds
-  movl   %eax,%es
-  movl   %eax,%ss
+  # Setup screen, clear
+  movw   $0x03,%ax
+  int    $0x10     # Set 80x25 mode
 
-  # Reload Code Segment and Instruction Pointer (switches to 32-bit mode)
-  ljmpl   $0x0008,$enter_protected_mode
+  # Print loading kernel ....
+  movw   $0,%di
+  mov    $0x0F,%ah
+  movl   $load_msg,%esi
+  call   print16
+  sub    $2,%di
+
+  # Read the kernel (or second stage bootloader) directly after the VBR (volume boot record)
+read_again:
+  mov    $0x0F,%ah
+  mov    $'.',%al
+  stosw
+  push   %edi
+  movl   $lba_data,%esi   # Point at the LBA data structure to pass to int 13h
+  movb   $0x42,%ah
+  int    $0x13            # DL is the drive number, it is passed in at start
+  movl   $read_error_msg,%esi
+  jc     fatal16
+  
+  movl   $0x800,%eax      # 0x40 sectors x 512 = 32k, 32k in 16 byte segments = 2k -> 0x800 
+  movl   $lba_data_segment,%edi
+  addw   %ax,(%edi)       # Set the destination memory address segment where the next disk read should go
+
+  movl   $0x40,%eax       # 0x40 sectors
+  movl   $lba_data_sector,%edi
+  addl   %eax,(%edi)      # Set the disk sector where the next disk read will start reading from
+
+  pop    %edi
+  movl   $kernel_size,%esi
+  subw   %ax,(%esi)       # See if we have read enough sectors to have loaded all of the kernel
+  cmpw   %ax,(%esi)
+  jg     read_again
+
+  # Verify the code loaded as expected
+  movl   $sig_mismatch_msg,%esi
+  movw   (0x8000 - 2),%ax
+  cmpw   $0x55AA,%ax   # testing the signature
+  jne    fatal16
+
+  # Verify the code loaded as expected
+  #movw   (0x81FE),%ax  # if have a 2nd signature value
+  #cmpw   $0x55AA,%ax   # testing the signature
+  #jne    fatal16
+
+  # Show Copyright information
+  movw   $800,%di
+  mov    $0x07,%ah
+  # movl   $copyright_msg,%esi
+  # call   print16
+
+  movl   $entry_0,%esi
+  xor    %edx,%edx
+  mov    boot_entry(%edx),%dl
+  shl    $5,%dx    # muliply by 32
+  add    %dx,%si
+
+  # Jump to the start address of where we loaded the kernel
+  jmpw   $0,$0x7E00
+
+read_error_msg:
+sig_mismatch_msg:
+  .ascii "Error "
+# String falls through to 'loading kernel'
+
+load_msg:
+  .asciz "loading kernel"
+
+# read_error_msg:
+#   .asciz "Disk read error loading kernel!"
+#
+# sig_mismatch_msg:
+#   .asciz "Kernel load error, bad signature!"
+
+#panic_msg:
+#  .asciz "Panic!"
 
 print16:
   lodsb
@@ -167,12 +286,11 @@ print16:
   jne    print16
   ret
 
-halt_msg:
-  .asciz "Panic!"
-
-panic16:
+#panic16:
+#  movl   $panic_msg,%esi
+fatal16:
+  # mov    $160,%di
   xorw   %di,%di
-  movl   $halt_msg,%esi
   mov    $0x0C,%ah
   call   print16
   # fall-through to halt16
@@ -182,49 +300,31 @@ halt16:
   hlt
   jmp    halt16
 
-# Code switches to 32-bit code here
-.code32
-enter_protected_mode:
-  # This is where we continue loading in the kernel's bootstrap code
-  ljmpl   $0x0008,$0x7E00
-halt32:
-  hlt
-  jmp    halt32
 
-gdt_msg:
-  .asciz "Global Descriptor Table"
+.org 0x7C00 + 510 - 128
+# Start of parameters block
 
-# Global descriptor table
-gdt:
-  # Description of entry:
-  #
-  #   P - present, D - desc priv lvl / ring, C - 0=sys,1=code/data, T - seg type
-  #   G - 4k granularity, B - seg size 0=16bit,1=32bit, L - 64bit code, A - system can use this bit
-  #   S - seg limit bits 16-19
-  #
-  #       seg limit   base 0-15 16-23     PD C T      GBLA  S  base(24-31)
-  #       |--------|  |--------|-----|    |/\|/--\    |||||--|  |--|
-  #       0xff, 0xff, 0x00, 0x00, 0x00, 0b10011010, 0b11001111, 0x00  # Example Descriptor
-  #
-  .byte   0x00, 0x00, 0x00, 0x00, 0x00, 0b00000000, 0b00000000, 0x00  # Null Descriptor
-  .byte   0xFF, 0xFF, 0x00, 0x00, 0x00, 0b10011010, 0b11001111, 0x00  # Code Descriptor
-  .byte   0xFF, 0xFF, 0x00, 0x00, 0x00, 0b10010010, 0b11001111, 0x00  # Data Descriptor
-  .byte   0x68, 0x00, 0x00, 0x00, 0x00, 0b10001001, 0b11001111, 0x00  # TSS Descriptor
-  #
-  # Same but only in hexidecimal for reference:
-  #
-  #  .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  # Null Descriptor
-  #  .byte 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x9A, 0xCF, 0x00  # Code Descriptor
-  #  .byte 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x92, 0xCF, 0x00  # Data Descriptor
-  #  .byte 0x68, 0x00, 0x00, 0x00, 0x00, 0x89, 0xCF, 0x00  # TSS Descriptor
+entry_0:                 # 32 bytes per entry
+ kernel_name:            #  Fixed length 8 character name / identifier
+   .asciz  "default"     #    the default settings
+ kernel_lba_start:       #  LBA sector on disk to start reading from - probably should be defined to be relative to start of the volume
+   .long   0x0002        #    sector 2 (MBR in sector 0, VBR in sector 1)
+ kernel_size:            #  Size in sectors
+   .word   0x0400        #    256*512 = 128k
+ kernel_load_address:    #  Where in physical memory to load in segments (x16 for linear address, can be in up to the 1st 1MB of RAM)
+   .word   0x07E0        #    loads to 0x00007E00
+ kernel_args:            #  Fixed length 16 character list of args
+   .asciz  "               "
 
-# Global descriptor table size and pointer
-.org 0x7C00 + 510 - 6
-.equ gdt32ptr,0x7C00 + 510 - 6
-  .word 31    # Size-1
-  .long gdt   # Location
+entry_1:
+   .asciz "test   " ; .long 0x0002 ; .word 0x100, 0x00007E00 ; .asciz  "no_vga         "
+entry_2:
+   .asciz "quiet  " ; .long 0x0002 ; .word 0x100, 0x00007E00 ; .asciz  "quiet no_vga   "
+entry_3:
+   .asciz "fallbak" ; .long 0x0002 ; .word 0x100, 0x00007E00 ; .asciz  "no_modules     "
 
 # Magic value our MBR looks for to tell if it is a valid VBR
 .org 0x7C00 + 510
 vbr_boot_signature:
   .word 0xAA55
+

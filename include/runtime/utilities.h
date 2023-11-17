@@ -8,23 +8,8 @@
 
 #include "types.h"
 
-extern "C"
-{
-  [[noreturn]]
-  void halt();
+typedef int (*compare_t)(const void *, const void *);
 
-  [[noreturn]]
-  void exit(int);
-
-  [[ noreturn ]]
-  void critical_error(const char *error_message);
-
-  // output helpers (avoids using printf)
-  void print_str(const char* str);
-
-  void print_int(int val);
-
-  void qsort(void *base, size_t nel, size_t width, int (*compar)(const void *, const void *));
-
-  unsigned random(unsigned x);
-}
+void k_qsort(void *base, size_t nel, size_t width, compare_t compare_func);
+const void *k_bsearch(const void *key, const void *base, size_t nmemb, size_t size, compare_t compare_func);
+unsigned k_random(unsigned x);
