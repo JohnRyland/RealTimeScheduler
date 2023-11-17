@@ -13,17 +13,6 @@
 
 #include "../../include/driver/text.h"
 
-
-/*
-static
-unsigned random(unsigned x)
-{
-  return random() % x;
-}
-*/
-
-
-
 static
 bool load()
 {
