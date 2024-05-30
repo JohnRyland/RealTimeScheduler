@@ -1,0 +1,386 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>RealtimeScheduler</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">2.</strong> About</a></li><li class="chapter-item expanded "><a href="FILES.html"><strong aria-hidden="true">3.</strong> Files</a></li><li class="chapter-item expanded "><a href="requirements.html"><strong aria-hidden="true">4.</strong> Requirements</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">5.</strong> Usage</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RealtimeScheduler</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p>This is placeholder for more docs</p>
+<h2 id="about"><a class="header" href="#about">About</a></h2>
+<p>A small RTOS scheduler, bootloader etc for a very simple x86_64 OS that is not very well featured</p>
+<h2 id="features"><a class="header" href="#features">Features</a></h2>
+<ul>
+<li>x</li>
+<li>y</li>
+<li>z</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="real-time-scheduler"><a class="header" href="#real-time-scheduler">Real-time Scheduler</a></h1>
+<h3 id="small-rtos-for-mcus"><a class="header" href="#small-rtos-for-mcus">Small RTOS for MCUs</a></h3>
+<p>Copyright (c) 2022, John Ryland
+All rights reserved.</p>
+<h2 id="introduction-1"><a class="header" href="#introduction-1">Introduction</a></h2>
+<p>This code requires a modern C++ compiler but is mostly C and avoids using
+classes.</p>
+<p>The intention is that this can be made to work on a variety of embedded
+devices. This isn't currently working on any devices yet, but the Pi Pico
+might be the first. It is the plan that any device where you program to
+bare metal could have this run on it, provided a small piece of code
+is written as a driver for installing a timer interrupt handler on the
+target device.</p>
+<h2 id="background"><a class="header" href="#background">Background</a></h2>
+<p>The original version of this scheduler I wrote about 25 years ago while
+at university and was a DOS application compiled with a Borland Turbo-C
+compiler. It made use of the conio library for visualizing the schedule
+and installed a timer ISR to the x86 platform.</p>
+<p>The code has been tidied up and modernised to C++11 code, and replacements
+for the conio functions and installing a timer event have been made for macOS.</p>
+<p>The visualization code is to help develop and debug the scheduler, but isn't
+intended as being required on any target device.</p>
+<h2 id="drivers"><a class="header" href="#drivers">Drivers</a></h2>
+<p>The timer driver is the critical piece of code which allows the scheduler
+to maintain a tick variable and to run code at regular intervals. It also
+allows the scheduler to preempt tasks which have been running longer than
+their allocated time.</p>
+<h2 id="tasks"><a class="header" href="#tasks">Tasks</a></h2>
+<p>The main purpose of a scheduler is to run tasks. These tasks might be
+periodic (repeating) or aperiodic (single non-repeating tasks).</p>
+<p>In a real-time scheduler, a task may have time constraint criteria, such
+as not being run earlier than a given time or not being started or finishing
+later than a given time. For the scheduler to be able to make any kind of
+guarentees that a given task can be executed within these constraints, the tasks
+themselves mustn't be unconstrained in how long they run for. They need to
+request how long they will run for each time they are scheduled (this is their
+execution bound). If they break this constraint, then the scheduling of other
+tasks could be broken. In this implementation there is a preemptor which if a
+task runs longer than its execution bounds, then the scheduler exits. This
+might be able to be changed to make it a callback or policy setting.</p>
+<p>The kind of use cases that a real-time task might be used for are things that
+are time critical, such as re-filling a buffer which the hardware is continuously
+draining, such as an audio device where the audio buffer needs constant refilling
+otherwise audible clicks, gaps/stutters and undesired noises are heard when it
+isn't refilled in time. With a fixed sized buffer and the hardware draining it at
+a constant rate, the task needed to keep filling it is going to be a periodic task
+with a period at least as often as how long it takes for the buffer to be drained.
+The task has a simple well defined scope of fetching data and putting it in the
+buffer. This should be fairly deterministic in how long it will take, and the
+execution bounds can be calculated based on the worst case for how
+long this takes.</p>
+<h2 id="ports"><a class="header" href="#ports">Ports</a></h2>
+<p>Currently only the macOS port is tested as working. Soon the Linux, Windows
+and DOS ports will be updated, and the plan is to support the Pi Pico.</p>
+<h2 id="goals"><a class="header" href="#goals">Goals</a></h2>
+<p>Goal is to have this work on the Pi Pico. On the Pi Pico it will be then
+the basis for a small RTOS that will be able to help in the refresh of a
+LCD panel connected via SPI.</p>
+<p>Another goal is to add non-real-time tasks which are able to be run in
+the free time of the CPU and can be preempted (interrupted) to then
+run a real-time task or to switch to another non-real-time task if it's
+quanta of time is up.</p>
+<p>Other goals are to be able to switch between kernel and user space when
+executing a task, and to switch back when the task is done. This is to
+allow for better memory and system protection. Currently everything is
+running with the same permissions and protection level. It is essentially
+calling a function to execute a task. The alternative will be port/device
+specific, so this will need to be abstracted to allow replacing the
+implmentation details of this feature. Some devices might not have such
+a concept, so this might not be possible everywhere.</p>
+<p>Other goals are implementing more general purpose drviers and exposing
+APIs to these in the tasks to make this more like an actual OS and not
+just a scheduler.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="magiccore---an-operating-system-with-real-time-capabilities"><a class="header" href="#magiccore---an-operating-system-with-real-time-capabilities">MagicCore - An Operating System with Real-Time capabilities</a></h1>
+<p>Copyright (c) 2022, John Ryland
+All rights reserved.</p>
+<h2 id="file-layout"><a class="header" href="#file-layout">File Layout</a></h2>
+<p>applications
+graphical
+shell
+examples
+bootloader
+arch
+configs
+arch
+documentation
+drivers
+cpu
+timer
+keyboard
+display
+kernel
+include
+arch
+source
+arch
+libraries
+libc
+include
+source
+libc++
+include
+source
+tools
+compiler
+arch
+toolchain
+symbols
+build</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="requirements"><a class="header" href="#requirements">Requirements</a></h1>
+<h3 id="copyright-c-2023-by-john-ryland"><a class="header" href="#copyright-c-2023-by-john-ryland">Copyright (C) 2023, by John Ryland.</a></h3>
+<h3 id="all-rights-reserved"><a class="header" href="#all-rights-reserved">All rights reserved.</a></h3>
+<h2 id="requirements-1"><a class="header" href="#requirements-1">Requirements</a></h2>
+<p>This will be a framework for running real-time and non-real-time applications.</p>
+<p>The framework can be run either on a host OS or directly on a variety of hardware where it provides the OS.</p>
+<p>When hosted on a non-realtime OS, the real-time applications are only simulating that they are real-time, no actual real-time constraints can be guarenteed.</p>
+<p>The interface between physical memory and virtual memory also is simulated when run in a hosted way.</p>
+<p>The OS should be scalable from hardware without an MMU to ones with an MMU. From single-core to multi-core. Without a GPU to with a GPU. With &lt;1MB to &gt;4GB.
+From 32bit to 64bit.</p>
+<p>Probably 16bit is out-of-scope.</p>
+<p>Low-end spec:</p>
+<ul>
+<li>512 kB ROM/Flash</li>
+<li>256 kB RAM, no MMU</li>
+<li>single core ARM 200MHz, 32bit</li>
+<li>software rendering</li>
+<li>240x320</li>
+</ul>
+<p>high-end spec:</p>
+<ul>
+<li>2TB SSD</li>
+<li>8GB RAM</li>
+<li>MMU</li>
+<li>8 core, 3GHz, 64-bit x86</li>
+<li>GPU (or intel integrated graphics)</li>
+<li>4k resolution screen</li>
+</ul>
+<p>Some concepts:</p>
+<p>address-spaces
+affinity
+partitioning</p>
+<p>kernel</p>
+<ul>
+<li>scheduler</li>
+<li>scheduler runs tasks
+interrupts</li>
+<li>call handlers</li>
+<li>mask, prioritize</li>
+<li>event queues
+memory management</li>
+<li>address spaces</li>
+<li>allocate pages</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="usage"><a class="header" href="#usage">Usage</a></h1>
+<p>This is how to use it</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+    </div>
+    </body>
+</html>
