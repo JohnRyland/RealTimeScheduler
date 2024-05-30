@@ -6,6 +6,9 @@ on:
       - 'documentation'
       - '.github/workflows/documentation.yml'
 
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
