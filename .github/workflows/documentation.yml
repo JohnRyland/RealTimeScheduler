@@ -1,0 +1,30 @@
+name: Document build
+
+on:
+  push:
+    paths:
+      - 'documentation'
+      - '.github/workflows/documentation.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+           mdbook-version: 'latest'
+
+      - name: Build document
+        run: >+
+          cd documentation && mkdir src && cp SUMMARY.md src ;
+          MDBOOK_BOOK='{"title": "RealtimeScheduler", "src": ".", "authors": ["JohnRyland"]}' mdbook build
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: documentation/book
