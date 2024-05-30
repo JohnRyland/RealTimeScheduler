@@ -7,3 +7,8 @@
 all: release
 
 -include tools/build/Generic.mak
+
+
+release:
+	@echo "Build system is still WIP"
+
